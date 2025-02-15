@@ -8,7 +8,6 @@ import {
   Share2, 
   Clock, 
   Star,
-  MessageSquare,
   Pencil
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -32,13 +31,8 @@ interface Note {
   created: string;
   lastEdited: string;
   type: string;
-  createdBy: string;
   participants: string;
   date: string;
-  content: {
-    discussionPoints: string[];
-    actionItems: string[];
-  };
 }
 
 const Index = () => {
@@ -49,25 +43,13 @@ const Index = () => {
       created: "November 23, 2023 1:26 PM",
       lastEdited: "November 23, 2023 1:28 PM",
       type: "Post-mortem",
-      createdBy: "Harry Guinness",
       participants: "Empty",
-      date: "Empty",
-      content: {
-        discussionPoints: [
-          "The Brain's goal to take over the world",
-          "Pinky's interference with The Brain's plans",
-          "Analysis of Pinky's behavior and its impact on The Brain's strategies",
-          "Brainstorming potential solutions to prevent Pinky from derailing world domination plans"
-        ],
-        actionItems: [
-          "Conduct further research on Pinky's psychology and motivations",
-          "Develop contingency plans to mitigate Pinky's influence on The Brain's operations"
-        ]
-      }
+      date: "Empty"
     }
   ]);
   const [selectedNote, setSelectedNote] = useState<Note>(notes[0]);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingType, setEditingType] = useState(false);
 
   const handleAddNote = () => {
     const newNote: Note = {
@@ -76,13 +58,8 @@ const Index = () => {
       created: new Date().toLocaleString(),
       lastEdited: new Date().toLocaleString(),
       type: "Note",
-      createdBy: "User",
       participants: "Empty",
-      date: "Empty",
-      content: {
-        discussionPoints: [],
-        actionItems: []
-      }
+      date: "Empty"
     };
     setNotes([...notes, newNote]);
     setSelectedNote(newNote);
@@ -92,6 +69,7 @@ const Index = () => {
   const handleNoteSelect = (note: Note) => {
     setSelectedNote(note);
     setEditingNoteId(null);
+    setEditingType(false);
   };
 
   const handleEditTitle = (noteId: string, newTitle: string) => {
@@ -104,6 +82,16 @@ const Index = () => {
     if (selectedNote.id === noteId) {
       setSelectedNote({ ...selectedNote, title: newTitle, lastEdited: new Date().toLocaleString() });
     }
+  };
+
+  const handleEditType = (newType: string) => {
+    const updatedNotes = notes.map(note => 
+      note.id === selectedNote.id 
+        ? { ...note, type: newType, lastEdited: new Date().toLocaleString() }
+        : note
+    );
+    setNotes(updatedNotes);
+    setSelectedNote({ ...selectedNote, type: newType, lastEdited: new Date().toLocaleString() });
   };
 
   return (
@@ -222,50 +210,35 @@ const Index = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Type</p>
-                  <p>{selectedNote.type}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Created By</p>
-                  <p>{selectedNote.createdBy}</p>
+                  <div className="flex items-center gap-2">
+                    {editingType ? (
+                      <Input
+                        type="text"
+                        value={selectedNote.type}
+                        onChange={(e) => handleEditType(e.target.value)}
+                        className="h-6 py-0 px-1"
+                        onBlur={() => setEditingType(false)}
+                        autoFocus
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span>{selectedNote.type}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => setEditingType(true)}
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
             <Separator className="my-8" />
-
-            {/* Discussion Points */}
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Discussion Points</h2>
-              <ul className="space-y-2">
-                {selectedNote.content.discussionPoints.map((point, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="mr-2">•</span>
-                    {point}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Action Items */}
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Action Items</h2>
-              <ul className="space-y-2">
-                {selectedNote.content.actionItems.map((item, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="mr-2">•</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Comment Section */}
-            <div className="mt-8">
-              <div className="flex items-center space-x-2 text-muted-foreground">
-                <MessageSquare className="w-4 h-4" />
-                <span>Add a comment...</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
