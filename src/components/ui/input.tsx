@@ -2,8 +2,11 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
-export interface InputProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {
+// Create a type that omits the prefix property from InputHTMLAttributes
+type InputBaseProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "prefix">
+
+// Create our InputProps interface that extends the base props
+export interface InputProps extends InputBaseProps {
   prefix?: React.ReactElement
 }
 
