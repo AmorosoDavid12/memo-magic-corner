@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Search, 
@@ -8,7 +7,8 @@ import {
   Share2, 
   Clock, 
   Star,
-  Pencil
+  Pencil,
+  Trash2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import {
   SidebarMenuButton,
   SidebarProvider
 } from "@/components/ui/sidebar";
+import RichTextEditor from "@/components/RichTextEditor";
 
 interface Note {
   id: string;
@@ -33,6 +34,7 @@ interface Note {
   type: string;
   participants: string;
   date: string;
+  content: string;
 }
 
 const Index = () => {
@@ -44,7 +46,8 @@ const Index = () => {
       lastEdited: "November 23, 2023 1:28 PM",
       type: "Post-mortem",
       participants: "Empty",
-      date: "Empty"
+      date: "Empty",
+      content: ""
     }
   ]);
   const [selectedNote, setSelectedNote] = useState<Note>(notes[0]);
@@ -59,7 +62,8 @@ const Index = () => {
       lastEdited: new Date().toLocaleString(),
       type: "Note",
       participants: "Empty",
-      date: "Empty"
+      date: "Empty",
+      content: ""
     };
     setNotes([...notes, newNote]);
     setSelectedNote(newNote);
@@ -92,6 +96,25 @@ const Index = () => {
     );
     setNotes(updatedNotes);
     setSelectedNote({ ...selectedNote, type: newType, lastEdited: new Date().toLocaleString() });
+  };
+
+  const handleDeleteNote = (noteId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    const updatedNotes = notes.filter(note => note.id !== noteId);
+    setNotes(updatedNotes);
+    if (selectedNote.id === noteId) {
+      setSelectedNote(updatedNotes[0] || null);
+    }
+  };
+
+  const handleContentChange = (newContent: string) => {
+    const updatedNotes = notes.map(note => 
+      note.id === selectedNote.id 
+        ? { ...note, content: newContent, lastEdited: new Date().toLocaleString() }
+        : note
+    );
+    setNotes(updatedNotes);
+    setSelectedNote({ ...selectedNote, content: newContent, lastEdited: new Date().toLocaleString() });
   };
 
   return (
@@ -141,11 +164,11 @@ const Index = () => {
                             <span>{note.title}</span>
                           )}
                         </div>
-                        {editingNoteId !== note.id && (
+                        <div className="flex opacity-0 group-hover:opacity-100">
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="opacity-0 group-hover:opacity-100"
+                            className="h-6 w-6"
                             onClick={(e) => {
                               e.stopPropagation();
                               setEditingNoteId(note.id);
@@ -153,7 +176,15 @@ const Index = () => {
                           >
                             <Pencil className="w-3 h-3" />
                           </Button>
-                        )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-destructive"
+                            onClick={(e) => handleDeleteNote(note.id, e)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
@@ -239,6 +270,16 @@ const Index = () => {
             </div>
 
             <Separator className="my-8" />
+            
+            {/* Rich Text Editor */}
+            {selectedNote && (
+              <div className="p-8 max-w-4xl mx-auto">
+                <RichTextEditor 
+                  content={selectedNote.content || ''} 
+                  onChange={handleContentChange}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
