@@ -116,16 +116,6 @@ const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         >
           <ImageIcon className="h-4 w-4" />
         </Button>
-        <select
-          className="h-8 px-2 rounded border bg-background"
-          onChange={(e) => editor.chain().focus().setFontSize(e.target.value).run()}
-        >
-          <option value="normal">Font size</option>
-          <option value="12px">Small</option>
-          <option value="16px">Normal</option>
-          <option value="20px">Large</option>
-          <option value="24px">Extra Large</option>
-        </select>
       </div>
       <EditorContent editor={editor} className="p-4 min-h-[200px] prose max-w-none" />
     </div>

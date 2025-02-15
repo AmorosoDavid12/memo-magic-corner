@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { 
   Search, 
@@ -196,91 +197,95 @@ const Index = () => {
 
         {/* Main Content */}
         <div className="flex-1 overflow-auto">
-          {/* Header */}
-          <div className="border-b p-4 flex justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="sm">
-                <FileText className="w-4 h-4 mr-2" />
-                Notes
-              </Button>
-              <span>/</span>
-              <Button variant="ghost" size="sm">
-                {selectedNote.title}
-              </Button>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="icon">
-                <Share2 className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="icon">
-                <Clock className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="icon">
-                <Star className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="icon">
-                <Settings className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Note Content */}
-          <div className="p-8 max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold mb-6">{selectedNote.title}</h1>
-            
-            {/* Metadata */}
-            <div className="space-y-4 mb-8">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Created</p>
-                  <p>{selectedNote.created}</p>
+          {selectedNote ? (
+            <>
+              {/* Header */}
+              <div className="border-b p-4 flex justify-between items-center">
+                <div className="flex items-center space-x-2">
+                  <Button variant="ghost" size="sm">
+                    <FileText className="w-4 h-4 mr-2" />
+                    Notes
+                  </Button>
+                  <span>/</span>
+                  <Button variant="ghost" size="sm">
+                    {selectedNote.title}
+                  </Button>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Last Edited Time</p>
-                  <p>{selectedNote.lastEdited}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Type</p>
-                  <div className="flex items-center gap-2">
-                    {editingType ? (
-                      <Input
-                        type="text"
-                        value={selectedNote.type}
-                        onChange={(e) => handleEditType(e.target.value)}
-                        className="h-6 py-0 px-1"
-                        onBlur={() => setEditingType(false)}
-                        autoFocus
-                      />
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <span>{selectedNote.type}</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={() => setEditingType(true)}
-                        >
-                          <Pencil className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                <div className="flex items-center space-x-2">
+                  <Button variant="ghost" size="icon">
+                    <Share2 className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon">
+                    <Clock className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon">
+                    <Star className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon">
+                    <Settings className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
-            </div>
 
-            <Separator className="my-8" />
-            
-            {/* Rich Text Editor */}
-            {selectedNote && (
+              {/* Note Content */}
               <div className="p-8 max-w-4xl mx-auto">
+                <h1 className="text-3xl font-bold mb-6">{selectedNote.title}</h1>
+                
+                {/* Metadata */}
+                <div className="space-y-4 mb-8">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Created</p>
+                      <p>{selectedNote.created}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Last Edited Time</p>
+                      <p>{selectedNote.lastEdited}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Type</p>
+                      <div className="flex items-center gap-2">
+                        {editingType ? (
+                          <Input
+                            type="text"
+                            value={selectedNote.type}
+                            onChange={(e) => handleEditType(e.target.value)}
+                            className="h-6 py-0 px-1"
+                            onBlur={() => setEditingType(false)}
+                            autoFocus
+                          />
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span>{selectedNote.type}</span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => setEditingType(true)}
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator className="my-8" />
+                
+                {/* Rich Text Editor */}
                 <RichTextEditor 
                   content={selectedNote.content || ''} 
                   onChange={handleContentChange}
                 />
               </div>
-            )}
-          </div>
+            </>
+          ) : (
+            <div className="h-full flex items-center justify-center text-muted-foreground">
+              <p>No note selected. Create a new note or select an existing one.</p>
+            </div>
+          )}
         </div>
       </div>
     </SidebarProvider>
