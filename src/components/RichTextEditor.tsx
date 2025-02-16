@@ -117,7 +117,7 @@ const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
           <ImageIcon className="h-4 w-4" />
         </Button>
       </div>
-      <EditorContent editor={editor} className="p-4 min-h-[200px] prose max-w-none" />
+      <EditorContent editor={editor} className="p-4 min-h-[200px] prose max-w-none focus:outline-none" />
     </div>
   );
 };
