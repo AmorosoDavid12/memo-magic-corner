@@ -15,8 +15,10 @@ import {
   Underline as UnderlineIcon,
   Highlighter,
   Strikethrough,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Upload
 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 
 interface RichTextEditorProps {
   content: string;
@@ -26,16 +28,73 @@ interface RichTextEditorProps {
 const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        bulletList: {
+          keepMarks: true,
+          keepAttributes: false,
+        },
+        orderedList: {
+          keepMarks: true,
+          keepAttributes: false,
+        },
+      }),
       TextStyle,
       Color,
       Underline,
       Highlight,
-      Image
+      Image.configure({
+        inline: true,
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'resize-both max-w-full cursor-pointer',
+        },
+      }),
     ],
     content,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
+    },
+    editorProps: {
+      handleDrop: (view, event, slice, moved) => {
+        if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) {
+          const file = event.dataTransfer.files[0];
+          if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              if (typeof e.target?.result === 'string') {
+                const image = new Image();
+                image.src = e.target.result;
+                image.onload = () => {
+                  editor?.chain().focus().setImage({ src: e.target.result }).run();
+                };
+              }
+            };
+            reader.readAsDataURL(file);
+            return true;
+          }
+        }
+        return false;
+      },
+      handlePaste: (view, event) => {
+        const items = Array.from(event.clipboardData?.items || []);
+        const image = items.find(item => item.type.startsWith('image/'));
+        
+        if (image) {
+          event.preventDefault();
+          const file = image.getAsFile();
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              if (typeof e.target?.result === 'string') {
+                editor?.chain().focus().setImage({ src: e.target.result }).run();
+              }
+            };
+            reader.readAsDataURL(file);
+            return true;
+          }
+        }
+        return false;
+      },
     },
   });
 
@@ -44,10 +103,22 @@ const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
   }
 
   const addImage = () => {
-    const url = window.prompt('Enter image URL');
-    if (url) {
-      editor.chain().focus().setImage({ src: url }).run();
-    }
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (typeof e.target?.result === 'string') {
+            editor.chain().focus().setImage({ src: e.target.result }).run();
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
   };
 
   return (
@@ -116,8 +187,44 @@ const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         >
           <ImageIcon className="h-4 w-4" />
         </Button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="ghost" size="sm">
+              <Upload className="h-4 w-4" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Upload Note</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="flex items-center gap-4">
+                <input
+                  type="file"
+                  accept=".txt,.md,.doc,.docx"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (e) => {
+                        if (typeof e.target?.result === 'string') {
+                          editor.commands.setContent(e.target.result);
+                        }
+                      };
+                      reader.readAsText(file);
+                    }
+                  }}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
-      <EditorContent editor={editor} className="p-4 min-h-[200px] prose max-w-none focus:outline-none" />
+      <EditorContent 
+        editor={editor} 
+        className="p-4 min-h-[200px] prose max-w-none focus:outline-none [&_img]:cursor-pointer [&_img]:rounded-lg [&_img]:border [&_img]:border-border [&_img]:shadow-sm [&_img]:transition-all [&_img]:hover:shadow-md"
+      />
     </div>
   );
 };
