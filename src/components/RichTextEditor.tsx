@@ -62,11 +62,7 @@ const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
             const reader = new FileReader();
             reader.onload = (e) => {
               if (typeof e.target?.result === 'string') {
-                const image = new Image();
-                image.src = e.target.result;
-                image.onload = () => {
-                  editor?.chain().focus().setImage({ src: e.target.result }).run();
-                };
+                editor?.chain().focus().setImage({ src: e.target.result }).run();
               }
             };
             reader.readAsDataURL(file);
