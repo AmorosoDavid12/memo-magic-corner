@@ -1,4 +1,3 @@
-
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextStyle from '@tiptap/extension-text-style';
@@ -15,8 +14,7 @@ import {
   Underline as UnderlineIcon,
   Highlighter,
   Strikethrough,
-  Image as ImageIcon,
-  Upload
+  Image as ImageIcon
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 
@@ -183,39 +181,6 @@ const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         >
           <ImageIcon className="h-4 w-4" />
         </Button>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="ghost" size="sm">
-              <Upload className="h-4 w-4" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Upload Note</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="flex items-center gap-4">
-                <input
-                  type="file"
-                  accept=".txt,.md,.doc,.docx"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (e) => {
-                        if (typeof e.target?.result === 'string') {
-                          editor.commands.setContent(e.target.result);
-                        }
-                      };
-                      reader.readAsText(file);
-                    }
-                  }}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                />
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
       <EditorContent 
         editor={editor} 

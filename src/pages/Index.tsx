@@ -136,6 +136,22 @@ const Index = () => {
     }
   };
 
+  const handleContentUpload = (newContent: string) => {
+    if (!selectedNote) return;
+    
+    const updatedNotes = notes.map(note => 
+      note.id === selectedNote.id 
+        ? { ...note, content: note.content + (note.content ? '\n\n' : '') + newContent, lastEdited: new Date().toLocaleString() }
+        : note
+    );
+    setNotes(updatedNotes);
+    
+    const updatedSelectedNote = updatedNotes.find(note => note.id === selectedNote.id);
+    if (updatedSelectedNote) {
+      setSelectedNote(updatedSelectedNote);
+    }
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -177,7 +193,11 @@ const Index = () => {
         <div className="flex-1 overflow-auto">
           {selectedNote ? (
             <>
-              <NoteHeader title={selectedNote.title} />
+              <NoteHeader 
+                title={selectedNote.title} 
+                noteId={selectedNote.id}
+                onContentUpdate={handleContentUpload}
+              />
 
               <div className="p-8 max-w-4xl mx-auto">
                 <h1 className="text-3xl font-bold mb-6">{selectedNote.title}</h1>
