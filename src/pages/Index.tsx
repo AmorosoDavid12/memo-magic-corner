@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -30,6 +31,7 @@ interface Note {
 
 const Index = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -211,42 +213,65 @@ const Index = () => {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      navigate("/auth");
+      toast.success("Logged out successfully");
+    } catch (error: any) {
+      toast.error("Error logging out: " + error.message);
+    }
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <Sidebar>
-          <div className="p-4 space-y-4">
-            <Input
-              type="text"
-              placeholder="Search"
-              className="w-full"
-              prefix={<Search className="w-4 h-4 text-muted-foreground" />}
-            />
-            <Button 
-              className="w-full justify-start" 
-              variant="outline"
-              onClick={handleAddNote}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              New Note
-            </Button>
+          <div className="h-full flex flex-col">
+            <div className="p-4 space-y-4">
+              <Input
+                type="text"
+                placeholder="Search"
+                className="w-full"
+                prefix={<Search className="w-4 h-4 text-muted-foreground" />}
+              />
+              <Button 
+                className="w-full justify-start" 
+                variant="outline"
+                onClick={handleAddNote}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                New Note
+              </Button>
+            </div>
+            <SidebarContent className="flex-1">
+              <SidebarGroup>
+                <SidebarGroupLabel>Notes</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <NotesList
+                    notes={notes}
+                    editingNoteId={editingNoteId}
+                    onNoteSelect={handleNoteSelect}
+                    onEditTitle={handleEditTitle}
+                    onDeleteNote={handleDeleteNote}
+                    onStartEditing={setEditingNoteId}
+                    onStopEditing={() => setEditingNoteId(null)}
+                  />
+                </SidebarGroupContent>
+              </SidebarGroup>
+            </SidebarContent>
+            <div className="p-4 mt-auto">
+              <Button 
+                className="w-full justify-start text-destructive" 
+                variant="ghost"
+                onClick={handleLogout}
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           </div>
-          <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupLabel>Notes</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <NotesList
-                  notes={notes}
-                  editingNoteId={editingNoteId}
-                  onNoteSelect={handleNoteSelect}
-                  onEditTitle={handleEditTitle}
-                  onDeleteNote={handleDeleteNote}
-                  onStartEditing={setEditingNoteId}
-                  onStopEditing={() => setEditingNoteId(null)}
-                />
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </SidebarContent>
         </Sidebar>
 
         <div className="flex-1 overflow-auto">
