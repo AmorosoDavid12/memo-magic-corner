@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Google } from "lucide-react";
+import { Chrome } from "lucide-react"; // Changed from Google to Chrome
 import { toast } from "sonner";
 
 const Auth = () => {
@@ -102,7 +102,7 @@ const Auth = () => {
               className="w-full"
               onClick={handleGoogleSignIn}
             >
-              <Google className="mr-2 h-4 w-4" />
+              <Chrome className="mr-2 h-4 w-4" /> {/* Changed from Google to Chrome */}
               Google
             </Button>
           </CardContent>
