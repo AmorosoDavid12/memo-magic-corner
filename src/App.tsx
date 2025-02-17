@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Shared from "./pages/Shared";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route path="/shared/:noteId" element={<Shared />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
