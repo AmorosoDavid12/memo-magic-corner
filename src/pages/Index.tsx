@@ -1,8 +1,12 @@
+
 import { useState, useEffect } from "react";
 import { Search, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   Sidebar,
   SidebarContent,
@@ -19,68 +23,66 @@ import NoteMetadata from "@/components/notes/NoteMetadata";
 interface Note {
   id: string;
   title: string;
-  created: string;
-  lastEdited: string;
-  type: string;
-  participants: string;
-  date: string;
   content: string;
+  type: string;
+  created_at: string;
+  updated_at: string;
 }
 
-const defaultNote: Note = {
-  id: "1",
-  title: "Post-mortem with The Brain",
-  created: "November 23, 2023 1:26 PM",
-  lastEdited: "November 23, 2023 1:28 PM",
-  type: "Post-mortem",
-  participants: "Empty",
-  date: "Empty",
-  content: ""
-};
-
 const Index = () => {
-  const [notes, setNotes] = useState<Note[]>(() => {
-    const savedNotes = localStorage.getItem('notes');
-    return savedNotes ? JSON.parse(savedNotes) : [defaultNote];
-  });
-
-  const [selectedNote, setSelectedNote] = useState<Note>(() => {
-    const savedSelectedNoteId = localStorage.getItem('selectedNoteId');
-    if (savedSelectedNoteId) {
-      const savedNotes = localStorage.getItem('notes');
-      const parsedNotes = savedNotes ? JSON.parse(savedNotes) : [defaultNote];
-      return parsedNotes.find(note => note.id === savedSelectedNoteId) || parsedNotes[0];
-    }
-    return notes[0];
-  });
-
+  const { user } = useAuth();
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingType, setEditingType] = useState(false);
 
+  // Fetch notes when component mounts
   useEffect(() => {
-    localStorage.setItem('notes', JSON.stringify(notes));
-  }, [notes]);
+    fetchNotes();
+  }, []);
 
-  useEffect(() => {
-    if (selectedNote) {
-      localStorage.setItem('selectedNoteId', selectedNote.id);
+  const fetchNotes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('notes')
+        .select('*')
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+
+      setNotes(data || []);
+      if (data && data.length > 0 && !selectedNote) {
+        setSelectedNote(data[0]);
+      }
+    } catch (error: any) {
+      toast.error('Error loading notes: ' + error.message);
     }
-  }, [selectedNote]);
+  };
 
-  const handleAddNote = () => {
-    const newNote: Note = {
-      id: Date.now().toString(),
-      title: "New Note",
-      created: new Date().toLocaleString(),
-      lastEdited: new Date().toLocaleString(),
-      type: "Note",
-      participants: "Empty",
-      date: "Empty",
-      content: ""
-    };
-    setNotes(prevNotes => [...prevNotes, newNote]);
-    setSelectedNote(newNote);
-    setEditingNoteId(newNote.id);
+  const handleAddNote = async () => {
+    try {
+      const newNote = {
+        title: "New Note",
+        content: "",
+        type: "Note",
+        user_id: user?.id
+      };
+
+      const { data, error } = await supabase
+        .from('notes')
+        .insert([newNote])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setNotes(prevNotes => [data, ...prevNotes]);
+      setSelectedNote(data);
+      setEditingNoteId(data.id);
+      toast.success('Note created successfully');
+    } catch (error: any) {
+      toast.error('Error creating note: ' + error.message);
+    }
   };
 
   const handleNoteSelect = (note: Note) => {
@@ -89,66 +91,126 @@ const Index = () => {
     setEditingType(false);
   };
 
-  const handleEditTitle = (noteId: string, newTitle: string) => {
-    const updatedNotes = notes.map(note => 
-      note.id === noteId 
-        ? { ...note, title: newTitle, lastEdited: new Date().toLocaleString() }
-        : note
-    );
-    setNotes(updatedNotes);
-    if (selectedNote.id === noteId) {
-      setSelectedNote({ ...selectedNote, title: newTitle, lastEdited: new Date().toLocaleString() });
+  const handleEditTitle = async (noteId: string, newTitle: string) => {
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .update({ title: newTitle })
+        .eq('id', noteId);
+
+      if (error) throw error;
+
+      const updatedNotes = notes.map(note => 
+        note.id === noteId 
+          ? { ...note, title: newTitle }
+          : note
+      );
+      setNotes(updatedNotes);
+      
+      if (selectedNote?.id === noteId) {
+        setSelectedNote(prev => prev ? { ...prev, title: newTitle } : null);
+      }
+      toast.success('Title updated successfully');
+    } catch (error: any) {
+      toast.error('Error updating title: ' + error.message);
     }
   };
 
-  const handleEditType = (newType: string) => {
-    const updatedNotes = notes.map(note => 
-      note.id === selectedNote.id 
-        ? { ...note, type: newType, lastEdited: new Date().toLocaleString() }
-        : note
-    );
-    setNotes(updatedNotes);
-    setSelectedNote({ ...selectedNote, type: newType, lastEdited: new Date().toLocaleString() });
+  const handleEditType = async (newType: string) => {
+    if (!selectedNote) return;
+
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .update({ type: newType })
+        .eq('id', selectedNote.id);
+
+      if (error) throw error;
+
+      const updatedNotes = notes.map(note => 
+        note.id === selectedNote.id 
+          ? { ...note, type: newType }
+          : note
+      );
+      setNotes(updatedNotes);
+      setSelectedNote({ ...selectedNote, type: newType });
+      toast.success('Type updated successfully');
+    } catch (error: any) {
+      toast.error('Error updating type: ' + error.message);
+    }
   };
 
-  const handleDeleteNote = (noteId: string, event: React.MouseEvent) => {
+  const handleDeleteNote = async (noteId: string, event: React.MouseEvent) => {
     event.stopPropagation();
-    const updatedNotes = notes.filter(note => note.id !== noteId);
-    setNotes(updatedNotes);
-    if (selectedNote.id === noteId) {
-      setSelectedNote(updatedNotes[0] || null);
+    
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .delete()
+        .eq('id', noteId);
+
+      if (error) throw error;
+
+      const updatedNotes = notes.filter(note => note.id !== noteId);
+      setNotes(updatedNotes);
+      
+      if (selectedNote?.id === noteId) {
+        setSelectedNote(updatedNotes[0] || null);
+      }
+      toast.success('Note deleted successfully');
+    } catch (error: any) {
+      toast.error('Error deleting note: ' + error.message);
     }
   };
 
-  const handleContentChange = (newContent: string) => {
+  // Debounced content update
+  const handleContentChange = async (newContent: string) => {
     if (!selectedNote) return;
     
-    const updatedNotes = notes.map(note => 
-      note.id === selectedNote.id 
-        ? { ...note, content: newContent, lastEdited: new Date().toLocaleString() }
-        : note
-    );
-    setNotes(updatedNotes);
-    
-    const updatedSelectedNote = updatedNotes.find(note => note.id === selectedNote.id);
-    if (updatedSelectedNote) {
-      setSelectedNote(updatedSelectedNote);
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .update({ content: newContent })
+        .eq('id', selectedNote.id);
+
+      if (error) throw error;
+
+      const updatedNotes = notes.map(note => 
+        note.id === selectedNote.id 
+          ? { ...note, content: newContent }
+          : note
+      );
+      setNotes(updatedNotes);
+      setSelectedNote({ ...selectedNote, content: newContent });
+    } catch (error: any) {
+      toast.error('Error saving note: ' + error.message);
     }
   };
 
-  const handleContentUpload = (newContent: string) => {
+  const handleContentUpload = async (newContent: string) => {
     if (!selectedNote) return;
     
-    const updatedNotes = notes.map(note => 
-      note.id === selectedNote.id 
-        ? { ...note, content: note.content + (note.content ? '\n\n' : '') + newContent, lastEdited: new Date().toLocaleString() }
-        : note
-    );
-    setNotes(updatedNotes);
-    
-    const updatedSelectedNote = updatedNotes.find(note => note.id === selectedNote.id);
-    if (updatedSelectedNote) {
-      setSelectedNote(updatedSelectedNote);
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .update({ 
+          content: selectedNote.content + (selectedNote.content ? '\n\n' : '') + newContent 
+        })
+        .eq('id', selectedNote.id);
+
+      if (error) throw error;
+
+      const updatedContent = selectedNote.content + (selectedNote.content ? '\n\n' : '') + newContent;
+      const updatedNotes = notes.map(note => 
+        note.id === selectedNote.id 
+          ? { ...note, content: updatedContent }
+          : note
+      );
+      setNotes(updatedNotes);
+      setSelectedNote({ ...selectedNote, content: updatedContent });
+      toast.success('Content uploaded successfully');
+    } catch (error: any) {
+      toast.error('Error uploading content: ' + error.message);
     }
   };
 
@@ -203,8 +265,8 @@ const Index = () => {
                 <h1 className="text-3xl font-bold mb-6">{selectedNote.title}</h1>
                 
                 <NoteMetadata
-                  created={selectedNote.created}
-                  lastEdited={selectedNote.lastEdited}
+                  created={selectedNote.created_at}
+                  lastEdited={selectedNote.updated_at}
                   type={selectedNote.type}
                   editingType={editingType}
                   onEditType={handleEditType}
