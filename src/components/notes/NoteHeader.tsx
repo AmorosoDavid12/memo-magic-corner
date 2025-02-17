@@ -3,6 +3,7 @@ import { FileText, Share2, Clock, Star, Settings, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import mammoth from "mammoth";
 
 interface NoteHeaderProps {
   title: string;
@@ -16,7 +17,6 @@ const NoteHeader = ({
   onContentUpdate
 }: NoteHeaderProps) => {
   const handleShareNote = () => {
-    // Create a shareable link with the note ID
     const shareableLink = `${window.location.origin}/shared/${noteId}`;
     navigator.clipboard.writeText(shareableLink);
     toast.success("Link copied to clipboard!");
@@ -27,16 +27,28 @@ const NoteHeader = ({
     let combinedContent = '';
     
     for (const file of files) {
-      const reader = new FileReader();
-      const content = await new Promise<string>((resolve) => {
-        reader.onload = (e) => {
-          if (typeof e.target?.result === 'string') {
-            resolve(e.target.result);
-          }
-        };
-        reader.readAsText(file);
-      });
-      combinedContent += (combinedContent ? '\n\n' : '') + content;
+      try {
+        let content = '';
+        
+        if (file.name.endsWith('.docx')) {
+          // Handle .docx files using mammoth
+          const arrayBuffer = await file.arrayBuffer();
+          const result = await mammoth.extractRawText({ arrayBuffer });
+          content = result.value;
+        } else if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
+          // Handle .txt and .md files
+          const text = await file.text();
+          content = text;
+        } else {
+          toast.error(`Unsupported file type: ${file.name}`);
+          continue;
+        }
+
+        // Add a separator between files if there's already content
+        combinedContent += (combinedContent ? '\n\n' : '') + content;
+      } catch (error: any) {
+        toast.error(`Error reading file ${file.name}: ${error.message}`);
+      }
     }
     
     if (combinedContent) {
