@@ -33,9 +33,15 @@ const Shared = () => {
         .from('notes')
         .select('*')
         .eq('id', noteId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      
+      if (!data) {
+        setNote(null);
+        return;
+      }
+
       setNote(data);
     } catch (error: any) {
       toast.error('Error loading note: ' + error.message);
