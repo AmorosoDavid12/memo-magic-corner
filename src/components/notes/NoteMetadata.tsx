@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 interface NoteMetadataProps {
-  created: string;
-  lastEdited: string;
+  created_at: string;
+  updated_at: string;
   type: string;
   editingType: boolean;
   onEditType: (newType: string) => void;
@@ -14,8 +14,8 @@ interface NoteMetadataProps {
 }
 
 const NoteMetadata = ({
-  created,
-  lastEdited,
+  created_at,
+  updated_at,
   type,
   editingType,
   onEditType,
@@ -27,11 +27,11 @@ const NoteMetadata = ({
       <div className="grid grid-cols-2 gap-4">
         <div>
           <p className="text-sm text-muted-foreground">Created</p>
-          <p>{created}</p>
+          <p>{created_at}</p>
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Last Edited Time</p>
-          <p>{lastEdited}</p>
+          <p>{updated_at}</p>
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Type</p>

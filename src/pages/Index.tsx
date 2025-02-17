@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Search, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -36,7 +35,6 @@ const Index = () => {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingType, setEditingType] = useState(false);
 
-  // Fetch notes when component mounts
   useEffect(() => {
     fetchNotes();
   }, []);
@@ -163,7 +161,6 @@ const Index = () => {
     }
   };
 
-  // Debounced content update
   const handleContentChange = async (newContent: string) => {
     if (!selectedNote) return;
     
@@ -265,8 +262,8 @@ const Index = () => {
                 <h1 className="text-3xl font-bold mb-6">{selectedNote.title}</h1>
                 
                 <NoteMetadata
-                  created={selectedNote.created_at}
-                  lastEdited={selectedNote.updated_at}
+                  created_at={selectedNote.created_at}
+                  updated_at={selectedNote.updated_at}
                   type={selectedNote.type}
                   editingType={editingType}
                   onEditType={handleEditType}
