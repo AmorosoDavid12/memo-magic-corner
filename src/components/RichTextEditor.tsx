@@ -1,5 +1,5 @@
 
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, Extension } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextStyle from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
@@ -17,6 +17,22 @@ import {
   Strikethrough,
   Image as ImageIcon
 } from 'lucide-react';
+
+// Custom extension for resizable images
+const ResizableImage = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: {
+        default: '100%',
+        renderHTML: attributes => ({
+          width: attributes.width,
+          style: `width: ${attributes.width}`,
+        }),
+      },
+    }
+  },
+});
 
 interface RichTextEditorProps {
   content: string;
@@ -47,11 +63,11 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
       Color,
       Underline,
       Highlight,
-      Image.configure({
+      ResizableImage.configure({
         inline: true,
         allowBase64: true,
         HTMLAttributes: {
-          class: 'max-w-full cursor-move rounded-lg border border-border hover:shadow-lg transition-shadow',
+          class: 'rounded-lg hover:shadow-lg transition-shadow',
         },
       }),
     ],
@@ -68,7 +84,14 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
             const reader = new FileReader();
             reader.onload = (e) => {
               if (typeof e.target?.result === 'string') {
-                editor?.chain().focus().setImage({ src: e.target.result }).run();
+                const img = new Image();
+                img.onload = () => {
+                  editor?.chain().focus().setImage({ 
+                    src: e.target?.result as string,
+                    width: '100%',
+                  }).run();
+                };
+                img.src = e.target.result as string;
               }
             };
             reader.readAsDataURL(file);
@@ -88,7 +111,14 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
             const reader = new FileReader();
             reader.onload = (e) => {
               if (typeof e.target?.result === 'string') {
-                editor?.chain().focus().setImage({ src: e.target.result }).run();
+                const img = new Image();
+                img.onload = () => {
+                  editor?.chain().focus().setImage({ 
+                    src: e.target?.result as string,
+                    width: '100%',
+                  }).run();
+                };
+                img.src = e.target.result as string;
               }
             };
             reader.readAsDataURL(file);
@@ -114,7 +144,14 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
         const reader = new FileReader();
         reader.onload = (e) => {
           if (typeof e.target?.result === 'string') {
-            editor.chain().focus().setImage({ src: e.target.result }).run();
+            const img = new Image();
+            img.onload = () => {
+              editor.chain().focus().setImage({ 
+                src: e.target?.result as string,
+                width: '100%',
+              }).run();
+            };
+            img.src = e.target.result as string;
           }
         };
         reader.readAsDataURL(file);
@@ -194,8 +231,32 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
       )}
       <EditorContent 
         editor={editor} 
-        className="p-4 min-h-[200px] prose max-w-none focus:outline-none [&_img]:cursor-move [&_img]:rounded-lg [&_img]:border [&_img]:border-border [&_img]:shadow-sm [&_img]:transition-all [&_img]:hover:shadow-md"
+        className="p-4 min-h-[200px] focus:outline-none prose-img:max-w-full prose-img:resize prose-img:cursor-col-resize"
       />
+      <style>{`
+        .ProseMirror {
+          > * + * {
+            margin-top: 0.75em;
+          }
+        }
+        
+        img {
+          resize: both;
+          overflow: auto;
+          max-width: 100%;
+          height: auto;
+        }
+
+        img::after {
+          content: '';
+          position: absolute;
+          bottom: -4px;
+          right: -4px;
+          width: 8px;
+          height: 8px;
+          cursor: nwse-resize;
+        }
+      `}</style>
     </div>
   );
 };
