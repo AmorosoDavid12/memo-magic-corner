@@ -31,10 +31,16 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
         bulletList: {
           keepMarks: true,
           keepAttributes: false,
+          HTMLAttributes: {
+            class: 'list-disc ml-4',
+          },
         },
         orderedList: {
           keepMarks: true,
           keepAttributes: false,
+          HTMLAttributes: {
+            class: 'list-decimal ml-4',
+          },
         },
       }),
       TextStyle,
@@ -45,8 +51,10 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
         inline: true,
         allowBase64: true,
         HTMLAttributes: {
-          class: 'resize-both max-w-full cursor-pointer',
+          class: 'max-w-full cursor-move rounded-lg border border-border hover:shadow-lg transition-shadow',
         },
+        resizable: true,
+        draggable: true,
       }),
     ],
     content,
@@ -118,7 +126,7 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
   };
 
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className="rounded-lg overflow-hidden bg-background">
       {!readOnly && (
         <div className="p-2 border-b bg-muted/50 flex flex-wrap gap-2">
           <Button
@@ -188,7 +196,7 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
       )}
       <EditorContent 
         editor={editor} 
-        className="p-4 min-h-[200px] prose max-w-none focus:outline-none [&_img]:cursor-pointer [&_img]:rounded-lg [&_img]:border [&_img]:border-border [&_img]:shadow-sm [&_img]:transition-all [&_img]:hover:shadow-md"
+        className="p-4 min-h-[200px] prose max-w-none focus:outline-none [&_img]:cursor-move [&_img]:rounded-lg [&_img]:border [&_img]:border-border [&_img]:shadow-sm [&_img]:transition-all [&_img]:hover:shadow-md"
       />
     </div>
   );
