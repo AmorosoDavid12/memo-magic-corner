@@ -84,14 +84,7 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
             const reader = new FileReader();
             reader.onload = (e) => {
               if (typeof e.target?.result === 'string') {
-                const img = new Image();
-                img.onload = () => {
-                  editor?.chain().focus().setImage({ 
-                    src: e.target?.result as string,
-                    width: '100%',
-                  }).run();
-                };
-                img.src = e.target.result as string;
+                editor?.chain().focus().setImage({ src: e.target.result }).run();
               }
             };
             reader.readAsDataURL(file);
@@ -111,14 +104,7 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
             const reader = new FileReader();
             reader.onload = (e) => {
               if (typeof e.target?.result === 'string') {
-                const img = new Image();
-                img.onload = () => {
-                  editor?.chain().focus().setImage({ 
-                    src: e.target?.result as string,
-                    width: '100%',
-                  }).run();
-                };
-                img.src = e.target.result as string;
+                editor?.chain().focus().setImage({ src: e.target.result }).run();
               }
             };
             reader.readAsDataURL(file);
@@ -144,14 +130,7 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
         const reader = new FileReader();
         reader.onload = (e) => {
           if (typeof e.target?.result === 'string') {
-            const img = new Image();
-            img.onload = () => {
-              editor.chain().focus().setImage({ 
-                src: e.target?.result as string,
-                width: '100%',
-              }).run();
-            };
-            img.src = e.target.result as string;
+            editor.chain().focus().setImage({ src: e.target.result }).run();
           }
         };
         reader.readAsDataURL(file);
