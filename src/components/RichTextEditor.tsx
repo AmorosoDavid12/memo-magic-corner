@@ -53,8 +53,6 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
         HTMLAttributes: {
           class: 'max-w-full cursor-move rounded-lg border border-border hover:shadow-lg transition-shadow',
         },
-        resizable: true,
-        draggable: true,
       }),
     ],
     content,
