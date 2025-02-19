@@ -1,3 +1,4 @@
+
 import { useEditor, EditorContent, Extension } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextStyle from '@tiptap/extension-text-style';
@@ -83,9 +84,7 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           },
         },
       }),
-      TextStyle.configure({
-        types: ['textStyle'],
-      }),
+      TextStyle.configure(),
       Color,
       Underline,
       Highlight,
