@@ -15,8 +15,15 @@ import {
   Underline as UnderlineIcon,
   Highlighter,
   Strikethrough,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Type,
+  Palette
 } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 // Custom extension for resizable images
 const ResizableImage = Image.extend({
@@ -33,6 +40,24 @@ const ResizableImage = Image.extend({
     }
   },
 });
+
+// Font size options
+const fontSizes = [
+  { label: 'Small', value: '10px' },
+  { label: 'Default', value: '12px' },
+  { label: 'Medium', value: '16px' },
+  { label: 'Large', value: '20px' },
+  { label: 'Extra Large', value: '24px' },
+];
+
+// Color options
+const colors = [
+  { label: 'Black', value: '#000000' },
+  { label: 'Gray', value: '#666666' },
+  { label: 'Red', value: '#ff0000' },
+  { label: 'Blue', value: '#0000ff' },
+  { label: 'Green', value: '#00ff00' },
+];
 
 interface RichTextEditorProps {
   content: string;
@@ -77,6 +102,9 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
     },
     editable: !readOnly,
     editorProps: {
+      attributes: {
+        style: 'font-size: 12px; color: #000000;'
+      },
       handleDrop: (view, event, slice, moved) => {
         if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) {
           const file = event.dataTransfer.files[0];
@@ -119,6 +147,14 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
   if (!editor) {
     return null;
   }
+
+  const setFontSize = (size: string) => {
+    editor.chain().focus().setStyle({ fontSize: size }).run();
+  };
+
+  const setColor = (color: string) => {
+    editor.chain().focus().setColor(color).run();
+  };
 
   const addImage = () => {
     const input = document.createElement('input');
@@ -183,6 +219,64 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           >
             <Highlighter className="h-4 w-4" />
           </Button>
+          
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={editor.isActive({ textStyle: { fontSize: true } }) ? 'bg-muted' : ''}
+              >
+                <Type className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-48 p-2">
+              <div className="flex flex-col gap-1">
+                {fontSizes.map((size) => (
+                  <Button
+                    key={size.value}
+                    variant="ghost"
+                    size="sm"
+                    className="justify-start font-normal"
+                    style={{ fontSize: size.value }}
+                    onClick={() => setFontSize(size.value)}
+                  >
+                    {size.label}
+                  </Button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={editor.isActive('textStyle') ? 'bg-muted' : ''}
+              >
+                <Palette className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-48 p-2">
+              <div className="flex flex-col gap-1">
+                {colors.map((color) => (
+                  <Button
+                    key={color.value}
+                    variant="ghost"
+                    size="sm"
+                    className="justify-start font-normal"
+                    style={{ color: color.value }}
+                    onClick={() => setColor(color.value)}
+                  >
+                    <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: color.value }} />
+                    {color.label}
+                  </Button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+
           <Button
             variant="ghost"
             size="sm"
