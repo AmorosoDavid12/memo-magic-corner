@@ -1,4 +1,3 @@
-
 import { useEditor, EditorContent, Extension } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextStyle from '@tiptap/extension-text-style';
@@ -24,6 +23,24 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+
+const FontSize = Extension.create({
+  name: 'fontSize',
+  addAttributes() {
+    return {
+      fontSize: {
+        default: null,
+        parseHTML: element => element.style.fontSize,
+        renderHTML: attributes => {
+          if (!attributes.fontSize) return {}
+          return {
+            style: `font-size: ${attributes.fontSize}`
+          }
+        }
+      }
+    }
+  }
+});
 
 const ResizableImage = Image.extend({
   addAttributes() {
@@ -84,7 +101,8 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           },
         },
       }),
-      TextStyle.configure(),
+      TextStyle,
+      FontSize,
       Color,
       Underline,
       Highlight,
@@ -104,7 +122,6 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
     editorProps: {
       attributes: {
         class: 'prose prose-sm max-w-none',
-        style: 'font-size: 12px; color: #000000;'
       },
       handleDrop: (view, event, slice, moved) => {
         if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) {
@@ -150,7 +167,7 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
   }
 
   const setFontSize = (size: string) => {
-    editor.chain().focus().setMark('textStyle', { fontSize: size }).run();
+    editor.chain().focus().setMark('fontSize', { fontSize: size }).run();
   };
 
   const setColor = (color: string) => {
@@ -226,7 +243,7 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
               <Button
                 variant="ghost"
                 size="sm"
-                className={editor.isActive('textStyle') ? 'bg-muted' : ''}
+                className={editor.isActive('fontSize') ? 'bg-muted' : ''}
               >
                 <Type className="h-4 w-4" />
               </Button>
