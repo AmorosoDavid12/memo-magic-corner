@@ -103,6 +103,7 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
     editable: !readOnly,
     editorProps: {
       attributes: {
+        class: 'prose prose-sm max-w-none',
         style: 'font-size: 12px; color: #000000;'
       },
       handleDrop: (view, event, slice, moved) => {
@@ -149,7 +150,7 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
   }
 
   const setFontSize = (size: string) => {
-    editor.chain().focus().setStyle({ fontSize: size }).run();
+    editor.chain().focus().setMark('textStyle', { fontSize: size }).run();
   };
 
   const setColor = (color: string) => {
@@ -225,7 +226,7 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
               <Button
                 variant="ghost"
                 size="sm"
-                className={editor.isActive({ textStyle: { fontSize: true } }) ? 'bg-muted' : ''}
+                className={editor.isActive('textStyle') ? 'bg-muted' : ''}
               >
                 <Type className="h-4 w-4" />
               </Button>
