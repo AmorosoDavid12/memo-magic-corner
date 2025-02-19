@@ -1,4 +1,3 @@
-
 import { useEditor, EditorContent, Extension } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextStyle from '@tiptap/extension-text-style';
@@ -25,7 +24,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-// Custom extension for resizable images
 const ResizableImage = Image.extend({
   addAttributes() {
     return {
@@ -41,16 +39,17 @@ const ResizableImage = Image.extend({
   },
 });
 
-// Font size options
 const fontSizes = [
-  { label: 'Small', value: '10px' },
-  { label: 'Default', value: '12px' },
-  { label: 'Medium', value: '16px' },
-  { label: 'Large', value: '20px' },
-  { label: 'Extra Large', value: '24px' },
+  { label: '10', value: '10px' },
+  { label: '12', value: '12px' },
+  { label: '14', value: '14px' },
+  { label: '16', value: '16px' },
+  { label: '18', value: '18px' },
+  { label: '20', value: '20px' },
+  { label: '24', value: '24px' },
+  { label: '30', value: '30px' },
 ];
 
-// Color options
 const colors = [
   { label: 'Black', value: '#000000' },
   { label: 'Gray', value: '#666666' },
@@ -84,7 +83,9 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           },
         },
       }),
-      TextStyle,
+      TextStyle.configure({
+        types: ['textStyle'],
+      }),
       Color,
       Underline,
       Highlight,
@@ -239,10 +240,9 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
                     variant="ghost"
                     size="sm"
                     className="justify-start font-normal"
-                    style={{ fontSize: size.value }}
                     onClick={() => setFontSize(size.value)}
                   >
-                    {size.label}
+                    {size.label}px
                   </Button>
                 ))}
               </div>
@@ -312,6 +312,10 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           > * + * {
             margin-top: 0.75em;
           }
+        }
+        
+        [style*="font-size:"] {
+          display: inline-block;
         }
         
         img {
