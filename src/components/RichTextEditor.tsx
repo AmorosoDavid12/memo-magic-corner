@@ -5,6 +5,7 @@ import Color from '@tiptap/extension-color';
 import Underline from '@tiptap/extension-underline';
 import Highlight from '@tiptap/extension-highlight';
 import Image from '@tiptap/extension-image';
+import { Mark, mergeAttributes } from '@tiptap/core';
 import { Button } from './ui/button';
 import { 
   Bold, 
@@ -24,21 +25,39 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-const FontSize = Extension.create({
+const FontSize = Mark.create({
   name: 'fontSize',
+  
   addAttributes() {
     return {
-      fontSize: {
+      size: {
         default: null,
         parseHTML: element => element.style.fontSize,
         renderHTML: attributes => {
-          if (!attributes.fontSize) return {}
+          if (!attributes.size) return {}
           return {
-            style: `font-size: ${attributes.fontSize}`
+            style: `font-size: ${attributes.size}`
           }
         }
       }
     }
+  },
+
+  parseHTML() {
+    return [
+      {
+        style: 'font-size',
+        getAttrs: value => {
+          return {
+            size: value
+          }
+        }
+      }
+    ]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['span', mergeAttributes(HTMLAttributes), 0]
   }
 });
 
@@ -85,22 +104,7 @@ interface RichTextEditorProps {
 const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorProps) => {
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        bulletList: {
-          keepMarks: true,
-          keepAttributes: false,
-          HTMLAttributes: {
-            class: 'list-disc ml-4',
-          },
-        },
-        orderedList: {
-          keepMarks: true,
-          keepAttributes: false,
-          HTMLAttributes: {
-            class: 'list-decimal ml-4',
-          },
-        },
-      }),
+      StarterKit,
       TextStyle,
       FontSize,
       Color,
@@ -167,7 +171,7 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
   }
 
   const setFontSize = (size: string) => {
-    editor.chain().focus().setMark('fontSize', { fontSize: size }).run();
+    editor.chain().focus().setMark('fontSize', { size }).run();
   };
 
   const setColor = (color: string) => {
