@@ -65,7 +65,6 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
         HTMLAttributes: {
           class: 'relative',
         },
-        priority: 900,
       }),
       ResizableImage.configure({
         inline: true,
