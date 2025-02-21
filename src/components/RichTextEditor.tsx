@@ -122,7 +122,7 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
             class: 'list-decimal ml-4',
           },
         },
-        strikethrough: {
+        strike: {
           HTMLAttributes: {
             class: 'line-through',
           },
