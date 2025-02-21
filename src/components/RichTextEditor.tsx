@@ -1,3 +1,4 @@
+
 import { useEditor, EditorContent, Extension } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextStyle from '@tiptap/extension-text-style';
@@ -104,7 +105,22 @@ interface RichTextEditorProps {
 const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorProps) => {
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        bulletList: {
+          keepMarks: true,
+          keepAttributes: false,
+          HTMLAttributes: {
+            class: 'list-disc ml-4',
+          },
+        },
+        orderedList: {
+          keepMarks: true,
+          keepAttributes: false,
+          HTMLAttributes: {
+            class: 'list-decimal ml-4',
+          },
+        },
+      }),
       TextStyle,
       FontSize,
       Color,

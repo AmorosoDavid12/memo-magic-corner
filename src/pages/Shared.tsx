@@ -33,7 +33,7 @@ const Shared = () => {
         .from('notes')
         .select('*')
         .eq('id', noteId)
-        .maybeSingle();
+        .single();
 
       if (error) throw error;
       
