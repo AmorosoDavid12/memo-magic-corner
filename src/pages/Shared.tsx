@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
-import RichTextEditor from "@/components/RichTextEditor";
+import RichTextEditor from "@/components/rich-text-editor";
 import NoteMetadata from "@/components/notes/NoteMetadata";
 
 interface Note {

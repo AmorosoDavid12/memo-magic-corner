@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Search, Plus, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ import {
   SidebarGroupLabel,
   SidebarProvider
 } from "@/components/ui/sidebar";
-import RichTextEditor from "@/components/RichTextEditor";
+import RichTextEditor from "@/components/rich-text-editor";
 import NotesList from "@/components/notes/NotesList";
 import NoteHeader from "@/components/notes/NoteHeader";
 import NoteMetadata from "@/components/notes/NoteMetadata";
