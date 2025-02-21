@@ -39,14 +39,17 @@ const Index = () => {
   const [editingType, setEditingType] = useState(false);
 
   useEffect(() => {
-    fetchNotes();
-  }, []);
+    if (user) {
+      fetchNotes();
+    }
+  }, [user]);
 
   const fetchNotes = async () => {
     try {
       const { data, error } = await supabase
         .from('notes')
         .select('*')
+        .eq('user_id', user?.id)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
@@ -54,6 +57,8 @@ const Index = () => {
       setNotes(data || []);
       if (data && data.length > 0 && !selectedNote) {
         setSelectedNote(data[0]);
+      } else if (data && data.length === 0) {
+        setSelectedNote(null);
       }
     } catch (error: any) {
       toast.error('Error loading notes: ' + error.message);
