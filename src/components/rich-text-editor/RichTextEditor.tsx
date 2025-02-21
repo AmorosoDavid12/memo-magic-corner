@@ -39,19 +39,33 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           },
         },
       }),
-      TextStyle.extend({
-        priority: 1000, // Higher priority to ensure it overrides other marks
-      }),
-      FontSize,
       Color.configure({
         types: ['textStyle'],
       }),
+      TextStyle.extend({
+        priority: 1000,
+        inclusive: false,
+        parseHTML() {
+          return [
+            {
+              tag: 'span',
+              getAttrs: element => {
+                return {
+                  color: element.getAttribute('style')?.match(/color: ([^;]+)/)?.[1],
+                };
+              },
+            },
+          ];
+        },
+      }),
+      FontSize,
       Underline,
       Highlight.configure({
         multicolor: true,
         HTMLAttributes: {
           class: 'relative',
         },
+        priority: 900,
       }),
       ResizableImage.configure({
         inline: true,
@@ -167,12 +181,16 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           cursor: nwse-resize;
         }
 
-        mark[style] {
-          color: inherit;
+        mark {
+          color: inherit !important;
         }
 
-        mark[data-color] {
-          color: var(--color);
+        mark[style*="color"] {
+          color: inherit !important;
+        }
+
+        span[style*="color"] mark {
+          color: inherit !important;
         }
       `}</style>
     </div>
