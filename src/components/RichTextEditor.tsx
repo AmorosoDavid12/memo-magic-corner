@@ -1,3 +1,4 @@
+
 import { useEditor, EditorContent, Extension } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextStyle from '@tiptap/extension-text-style';
@@ -129,9 +130,13 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
       }),
       TextStyle,
       FontSize,
-      Color,
+      Color.configure({
+        types: ['textStyle'],
+      }),
       Underline,
-      Highlight,
+      Highlight.configure({
+        multicolor: true,
+      }),
       ResizableImage.configure({
         inline: true,
         allowBase64: true,
