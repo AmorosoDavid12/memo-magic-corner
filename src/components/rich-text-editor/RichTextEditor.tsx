@@ -39,7 +39,9 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           },
         },
       }),
-      TextStyle,
+      TextStyle.extend({
+        priority: 1000, // Higher priority to ensure it overrides other marks
+      }),
       FontSize,
       Color.configure({
         types: ['textStyle'],
@@ -47,6 +49,9 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
       Underline,
       Highlight.configure({
         multicolor: true,
+        HTMLAttributes: {
+          class: 'relative',
+        },
       }),
       ResizableImage.configure({
         inline: true,
@@ -160,6 +165,14 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           width: 8px;
           height: 8px;
           cursor: nwse-resize;
+        }
+
+        mark[style] {
+          color: inherit;
+        }
+
+        mark[data-color] {
+          color: var(--color);
         }
       `}</style>
     </div>
