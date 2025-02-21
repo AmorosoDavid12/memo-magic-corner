@@ -1,4 +1,3 @@
-
 import { useEditor, EditorContent, Extension } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextStyle from '@tiptap/extension-text-style';
@@ -59,7 +58,9 @@ const FontSize = Mark.create({
 
   renderHTML({ HTMLAttributes }) {
     return ['span', mergeAttributes(HTMLAttributes), 0]
-  }
+  },
+
+  priority: 500
 });
 
 const ResizableImage = Image.extend({
@@ -118,6 +119,11 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           keepAttributes: false,
           HTMLAttributes: {
             class: 'list-decimal ml-4',
+          },
+        },
+        strikethrough: {
+          HTMLAttributes: {
+            class: 'line-through',
           },
         },
       }),
