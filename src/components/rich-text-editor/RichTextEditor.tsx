@@ -39,10 +39,14 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           },
         },
       }),
+      TextStyle.configure({
+        HTMLAttributes: {
+          class: 'text-color',
+        },
+      }),
       Color.configure({
         types: ['textStyle'],
       }),
-      TextStyle,
       FontSize,
       Underline,
       Highlight.configure({
@@ -137,7 +141,11 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           color: inherit !important;
         }
 
-        span[style*="color"] {
+        .text-color[style*="color:"] {
+          color: var(--color) !important;
+        }
+
+        span[style*="color:"] {
           color: var(--color) !important;
         }
 
