@@ -88,11 +88,13 @@ const Shared = () => {
 
       <Separator className="my-8" />
       
-      <RichTextEditor 
-        content={note.content || ''} 
-        onChange={() => {}}
-        readOnly
-      />
+      <div className="prose prose-sm max-w-none">
+        <RichTextEditor 
+          content={note.content || ''} 
+          onChange={() => {}}
+          readOnly
+        />
+      </div>
     </div>
   );
 };
