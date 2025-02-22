@@ -42,21 +42,8 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
       Color.configure({
         types: ['textStyle'],
       }),
-      TextStyle.extend({
-        priority: 1000,
-        inclusive: false,
-        parseHTML() {
-          return [
-            {
-              tag: 'span',
-              getAttrs: element => {
-                return {
-                  color: element.getAttribute('style')?.match(/color: ([^;]+)/)?.[1],
-                };
-              },
-            },
-          ];
-        },
+      TextStyle.configure({
+        types: ['textStyle'],
       }),
       FontSize,
       Underline,
@@ -81,65 +68,10 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
     editable: !readOnly,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none',
-      },
-      handleDrop: (view, event, slice, moved) => {
-        if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) {
-          const file = event.dataTransfer.files[0];
-          if (file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              if (typeof e.target?.result === 'string') {
-                editor?.chain().focus().setImage({ src: e.target.result }).run();
-              }
-            };
-            reader.readAsDataURL(file);
-            return true;
-          }
-        }
-        return false;
-      },
-      handlePaste: (view, event) => {
-        const items = Array.from(event.clipboardData?.items || []);
-        const image = items.find(item => item.type.startsWith('image/'));
-        
-        if (image) {
-          event.preventDefault();
-          const file = image.getAsFile();
-          if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              if (typeof e.target?.result === 'string') {
-                editor?.chain().focus().setImage({ src: e.target.result }).run();
-              }
-            };
-            reader.readAsDataURL(file);
-            return true;
-          }
-        }
-        return false;
+        class: 'prose prose-sm max-w-none focus:outline-none',
       },
     },
   });
-
-  const addImage = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          if (typeof e.target?.result === 'string') {
-            editor?.chain().focus().setImage({ src: e.target.result }).run();
-          }
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-    input.click();
-  };
 
   if (!editor) {
     return null;
@@ -150,7 +82,7 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
       {!readOnly && <EditorToolbar editor={editor} onImageAdd={addImage} />}
       <EditorContent 
         editor={editor} 
-        className="p-4 min-h-[200px] focus:outline-none prose-img:max-w-full prose-img:resize prose-img:cursor-col-resize"
+        className="p-4 min-h-[200px] prose-img:max-w-full prose-img:resize prose-img:cursor-col-resize"
       />
       <style>{`
         .ProseMirror {
@@ -186,6 +118,10 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
 
         mark[style*="color"] {
           color: inherit !important;
+        }
+
+        span[style*="color"] {
+          color: var(--color) !important;
         }
 
         span[style*="color"] mark {
