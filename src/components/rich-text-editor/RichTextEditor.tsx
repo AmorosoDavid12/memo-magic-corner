@@ -39,14 +39,8 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           },
         },
       }),
-      TextStyle.configure({
-        HTMLAttributes: {
-          class: 'text-color',
-        },
-      }),
-      Color.configure({
-        types: ['textStyle'],
-      }),
+      TextStyle,
+      Color,
       FontSize,
       Underline,
       Highlight.configure({
@@ -141,16 +135,20 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           color: inherit !important;
         }
 
-        .text-color[style*="color:"] {
-          color: var(--color) !important;
+        [style*="--tw-prose-body:"] {
+          --tw-prose-body: inherit !important;
         }
 
-        span[style*="color:"] {
-          color: var(--color) !important;
+        [style*="color:"] {
+          color: inherit;
         }
 
-        span[style*="color"] mark {
-          color: inherit !important;
+        [data-color] {
+          color: attr(data-color) !important;
+        }
+
+        [style*="color:"] {
+          color: var(--color) !important;
         }
       `}</style>
     </div>
