@@ -39,8 +39,12 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           },
         },
       }),
-      TextStyle,
-      Color,
+      Color.configure({
+        types: ['textStyle'],
+      }),
+      TextStyle.configure({
+        types: ['textStyle'],
+      }),
       FontSize,
       Underline,
       Highlight.configure({
@@ -131,23 +135,34 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           color: inherit !important;
         }
 
-        mark[style*="color"] {
-          color: inherit !important;
+        .prose {
+          --tw-prose-body: inherit;
+          --tw-prose-headings: inherit;
+          --tw-prose-lead: inherit;
+          --tw-prose-links: inherit;
+          --tw-prose-bold: inherit;
+          --tw-prose-counters: inherit;
+          --tw-prose-bullets: inherit;
+          --tw-prose-hr: inherit;
+          --tw-prose-quotes: inherit;
+          --tw-prose-quote-borders: inherit;
+          --tw-prose-captions: inherit;
+          --tw-prose-code: inherit;
+          --tw-prose-pre-code: inherit;
+          --tw-prose-pre-bg: inherit;
+          --tw-prose-th-borders: inherit;
+          --tw-prose-td-borders: inherit;
         }
 
-        [style*="--tw-prose-body:"] {
-          --tw-prose-body: inherit !important;
+        .ProseMirror [style*="color:"] {
+          color: unset;
         }
 
-        [style*="color:"] {
-          color: inherit;
+        .ProseMirror [style*="color:"] {
+          color: var(--color) !important;
         }
 
-        [data-color] {
-          color: attr(data-color) !important;
-        }
-
-        [style*="color:"] {
+        .ProseMirror span[style*="color:"] {
           color: var(--color) !important;
         }
       `}</style>
