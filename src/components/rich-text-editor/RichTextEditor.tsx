@@ -42,9 +42,7 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
       Color.configure({
         types: ['textStyle'],
       }),
-      TextStyle.configure({
-        types: ['textStyle'],
-      }),
+      TextStyle,
       FontSize,
       Underline,
       Highlight.configure({
@@ -72,6 +70,25 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
       },
     },
   });
+
+  const addImage = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (typeof e.target?.result === 'string') {
+            editor?.chain().focus().setImage({ src: e.target.result }).run();
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
+  };
 
   if (!editor) {
     return null;
