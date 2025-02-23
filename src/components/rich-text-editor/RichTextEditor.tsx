@@ -39,10 +39,8 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           },
         },
       }),
+      TextStyle,
       Color.configure({
-        types: ['textStyle'],
-      }),
-      TextStyle.configure({
         types: ['textStyle'],
       }),
       FontSize,
