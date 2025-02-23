@@ -18,6 +18,14 @@ interface RichTextEditorProps {
 const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorProps) => {
   const editor = useEditor({
     extensions: [
+      TextStyle.configure({
+        HTMLAttributes: {
+          class: 'styled-text',
+        },
+      }),
+      Color.configure({
+        types: ['textStyle'],
+      }),
       StarterKit.configure({
         bulletList: {
           keepMarks: true,
@@ -39,14 +47,6 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           },
         },
       }),
-      TextStyle.configure({
-        HTMLAttributes: {
-          class: 'styled-text',
-        },
-      }),
-      Color.configure({
-        types: ['textStyle'],
-      }),
       FontSize,
       Underline,
       Highlight.configure({
@@ -63,7 +63,7 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
         },
       }),
     ],
-    content,
+    content: content || '<p></p>', // Ensure there's always valid content
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
@@ -141,10 +141,6 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           color: var(--tw-prose-body);
         }
 
-        .styled-text[style*="color:"] {
-          color: unset !important;
-        }
-
         .ProseMirror .styled-text[style*="color:"] {
           display: inline;
           color: var(--color, currentColor) !important;
@@ -160,6 +156,14 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
 
         mark {
           color: inherit !important;
+        }
+
+        [style*="color:"] {
+          color: unset !important;
+        }
+
+        span[style*="color:"] {
+          color: attr(style color) !important;
         }
       `}</style>
     </div>

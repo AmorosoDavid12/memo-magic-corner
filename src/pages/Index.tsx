@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Search, Plus, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -69,7 +68,7 @@ const Index = () => {
     try {
       const newNote = {
         title: "New Note",
-        content: "",
+        content: "<p></p>", // Initialize with a proper HTML structure
         type: "Note",
         user_id: user?.id
       };
