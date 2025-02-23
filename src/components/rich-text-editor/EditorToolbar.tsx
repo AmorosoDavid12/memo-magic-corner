@@ -34,7 +34,7 @@ const EditorToolbar = ({ editor, onImageAdd }: EditorToolbarProps) => {
   };
 
   const setColor = (color: string) => {
-    editor.chain().focus().setColor(color).run();
+    editor.chain().focus().unsetColor().setColor(color).run();
   };
 
   return (

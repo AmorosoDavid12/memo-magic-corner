@@ -18,8 +18,6 @@ interface RichTextEditorProps {
 const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorProps) => {
   const editor = useEditor({
     extensions: [
-      TextStyle,
-      Color,
       StarterKit.configure({
         bulletList: {
           keepMarks: true,
@@ -40,6 +38,14 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
             class: 'line-through',
           },
         },
+      }),
+      TextStyle.configure({
+        HTMLAttributes: {
+          class: 'styled-text',
+        },
+      }),
+      Color.configure({
+        types: ['textStyle'],
       }),
       FontSize,
       Underline,
@@ -127,29 +133,29 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           cursor: nwse-resize;
         }
 
-        .prose :is(p, span, div) {
-          color: inherit;
+        .prose * {
+          color: currentColor;
         }
 
-        [style*="color:"] {
-          color: unset;
+        .styled-text[style] {
+          color: var(--tw-prose-body);
         }
 
-        span[style*="color:"] {
-          color: attr(style) !important;
+        .styled-text[style*="color:"] {
+          color: unset !important;
         }
 
-        .ProseMirror span[style*="color"] {
+        .ProseMirror .styled-text[style*="color:"] {
           display: inline;
-          color: var(--text-color, inherit);
+          color: var(--color, currentColor) !important;
         }
 
-        .ProseMirror span[style*="color: rgb("] {
-          color: attr(style) !important;
+        .ProseMirror [data-type="textStyle"] {
+          color: currentColor;
         }
 
-        .ProseMirror span[style*="color: #"] {
-          color: attr(style) !important;
+        .ProseMirror [data-type="textStyle"][style*="color:"] {
+          color: unset !important;
         }
 
         mark {
