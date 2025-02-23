@@ -18,6 +18,10 @@ interface RichTextEditorProps {
 const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorProps) => {
   const editor = useEditor({
     extensions: [
+      TextStyle,
+      Color.configure({
+        types: ['textStyle'],
+      }),
       StarterKit.configure({
         bulletList: {
           keepMarks: true,
@@ -38,10 +42,6 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
             class: 'line-through',
           },
         },
-      }),
-      TextStyle,
-      Color.configure({
-        types: ['textStyle'],
       }),
       FontSize,
       Underline,
@@ -129,39 +129,32 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           cursor: nwse-resize;
         }
 
+        .prose :where(p):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
+          color: inherit;
+        }
+
+        .prose * {
+          color: inherit;
+        }
+
+        .ProseMirror p {
+          color: inherit;
+        }
+
+        [style*="color"] {
+          color: inherit;
+        }
+
+        span[style*="color"] {
+          color: var(--color) !important;
+        }
+
+        .ProseMirror span[style*="color"] {
+          color: var(--color) !important;
+        }
+
         mark {
           color: inherit !important;
-        }
-
-        .prose {
-          --tw-prose-body: inherit;
-          --tw-prose-headings: inherit;
-          --tw-prose-lead: inherit;
-          --tw-prose-links: inherit;
-          --tw-prose-bold: inherit;
-          --tw-prose-counters: inherit;
-          --tw-prose-bullets: inherit;
-          --tw-prose-hr: inherit;
-          --tw-prose-quotes: inherit;
-          --tw-prose-quote-borders: inherit;
-          --tw-prose-captions: inherit;
-          --tw-prose-code: inherit;
-          --tw-prose-pre-code: inherit;
-          --tw-prose-pre-bg: inherit;
-          --tw-prose-th-borders: inherit;
-          --tw-prose-td-borders: inherit;
-        }
-
-        .ProseMirror [style*="color:"] {
-          color: unset;
-        }
-
-        .ProseMirror [style*="color:"] {
-          color: var(--color) !important;
-        }
-
-        .ProseMirror span[style*="color:"] {
-          color: var(--color) !important;
         }
       `}</style>
     </div>
