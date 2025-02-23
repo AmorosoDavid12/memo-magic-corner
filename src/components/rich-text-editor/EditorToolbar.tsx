@@ -1,3 +1,4 @@
+
 import { Editor } from '@tiptap/react';
 import { Button } from '../ui/button';
 import { 
@@ -34,7 +35,7 @@ const EditorToolbar = ({ editor, onImageAdd }: EditorToolbarProps) => {
   };
 
   const setColor = (color: string) => {
-    editor.chain().focus().unsetColor().setColor(color).run();
+    editor.chain().focus().setMark('textStyle', { color }).run();
   };
 
   return (
@@ -112,7 +113,7 @@ const EditorToolbar = ({ editor, onImageAdd }: EditorToolbarProps) => {
           <Button
             variant="ghost"
             size="sm"
-            className={editor.isActive('textStyle') ? 'bg-muted' : ''}
+            className={editor.isActive('textColor') ? 'bg-muted' : ''}
           >
             <Palette className="h-4 w-4" />
           </Button>

@@ -2,12 +2,54 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextStyle from '@tiptap/extension-text-style';
-import Color from '@tiptap/extension-color';
 import Underline from '@tiptap/extension-underline';
 import Highlight from '@tiptap/extension-highlight';
+import { Extension } from '@tiptap/core';
 import FontSize from './extensions/FontSize';
 import ResizableImage from './extensions/ResizableImage';
 import EditorToolbar from './EditorToolbar';
+
+// Custom color extension
+const ColorExtension = Extension.create({
+  name: 'textColor',
+  
+  addAttributes() {
+    return {
+      color: {
+        default: null,
+        parseHTML: element => element.dataset.color,
+        renderHTML: attributes => {
+          if (!attributes.color) return {};
+          return {
+            'data-color': attributes.color,
+            class: `text-color-${attributes.color.replace('#', '')}`,
+          };
+        },
+      },
+    };
+  },
+
+  addGlobalAttributes() {
+    return [
+      {
+        types: ['textStyle'],
+        attributes: {
+          color: {
+            default: null,
+            parseHTML: element => element.dataset.color,
+            renderHTML: attributes => {
+              if (!attributes.color) return {};
+              return {
+                'data-color': attributes.color,
+                class: `text-color-${attributes.color.replace('#', '')}`,
+              };
+            },
+          },
+        },
+      },
+    ];
+  },
+});
 
 interface RichTextEditorProps {
   content: string;
@@ -18,35 +60,9 @@ interface RichTextEditorProps {
 const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorProps) => {
   const editor = useEditor({
     extensions: [
-      TextStyle.configure({
-        HTMLAttributes: {
-          class: 'styled-text',
-        },
-      }),
-      Color.configure({
-        types: ['textStyle'],
-      }),
-      StarterKit.configure({
-        bulletList: {
-          keepMarks: true,
-          keepAttributes: false,
-          HTMLAttributes: {
-            class: 'list-disc ml-4',
-          },
-        },
-        orderedList: {
-          keepMarks: true,
-          keepAttributes: false,
-          HTMLAttributes: {
-            class: 'list-decimal ml-4',
-          },
-        },
-        strike: {
-          HTMLAttributes: {
-            class: 'line-through',
-          },
-        },
-      }),
+      StarterKit,
+      TextStyle,
+      ColorExtension,
       FontSize,
       Underline,
       Highlight.configure({
@@ -63,7 +79,7 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
         },
       }),
     ],
-    content: content || '<p></p>', // Ensure there's always valid content
+    content: content || '<p></p>',
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
@@ -133,38 +149,11 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           cursor: nwse-resize;
         }
 
-        .prose * {
-          color: currentColor;
-        }
-
-        .styled-text[style] {
-          color: var(--tw-prose-body);
-        }
-
-        .ProseMirror .styled-text[style*="color:"] {
-          display: inline;
-          color: var(--color, currentColor) !important;
-        }
-
-        .ProseMirror [data-type="textStyle"] {
-          color: currentColor;
-        }
-
-        .ProseMirror [data-type="textStyle"][style*="color:"] {
-          color: unset !important;
-        }
-
-        mark {
-          color: inherit !important;
-        }
-
-        [style*="color:"] {
-          color: unset !important;
-        }
-
-        span[style*="color:"] {
-          color: attr(style color) !important;
-        }
+        [data-color="#FF0000"] { color: #FF0000 !important; }
+        [data-color="#0000FF"] { color: #0000FF !important; }
+        [data-color="#00FF00"] { color: #00FF00 !important; }
+        [data-color="#000000"] { color: #000000 !important; }
+        [data-color="#6B7280"] { color: #6B7280 !important; }
       `}</style>
     </div>
   );
