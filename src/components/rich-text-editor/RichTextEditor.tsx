@@ -19,9 +19,7 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
   const editor = useEditor({
     extensions: [
       TextStyle,
-      Color.configure({
-        types: ['textStyle'],
-      }),
+      Color,
       StarterKit.configure({
         bulletList: {
           keepMarks: true,
@@ -129,28 +127,29 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           cursor: nwse-resize;
         }
 
-        .prose :where(p):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
+        .prose :is(p, span, div) {
           color: inherit;
         }
 
-        .prose * {
-          color: inherit;
+        [style*="color:"] {
+          color: unset;
         }
 
-        .ProseMirror p {
-          color: inherit;
-        }
-
-        [style*="color"] {
-          color: inherit;
-        }
-
-        span[style*="color"] {
-          color: var(--color) !important;
+        span[style*="color:"] {
+          color: attr(style) !important;
         }
 
         .ProseMirror span[style*="color"] {
-          color: var(--color) !important;
+          display: inline;
+          color: var(--text-color, inherit);
+        }
+
+        .ProseMirror span[style*="color: rgb("] {
+          color: attr(style) !important;
+        }
+
+        .ProseMirror span[style*="color: #"] {
+          color: attr(style) !important;
         }
 
         mark {
