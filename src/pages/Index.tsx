@@ -230,6 +230,13 @@ const Index = () => {
     }
   };
 
+  const handleReorderNotes = async (reorderedNotes: Note[]) => {
+    setNotes(reorderedNotes);
+    // If you want to persist the order in the database,
+    // you could add a `position` field to your notes table
+    // and update it here
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -263,6 +270,7 @@ const Index = () => {
                     onDeleteNote={handleDeleteNote}
                     onStartEditing={setEditingNoteId}
                     onStopEditing={() => setEditingNoteId(null)}
+                    onReorder={handleReorderNotes}
                   />
                 </SidebarGroupContent>
               </SidebarGroup>
