@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +5,7 @@ import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import RichTextEditor from "@/components/rich-text-editor";
 import NoteMetadata from "@/components/notes/NoteMetadata";
+import { format } from "date-fns";
 
 interface Note {
   id: string;
@@ -48,6 +48,11 @@ const Shared = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return format(date, "HH:mm  dd.MM.yyyy");
   };
 
   if (loading) {

@@ -2,6 +2,7 @@
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { format } from "date-fns";
 
 interface NoteMetadataProps {
   created_at: string;
@@ -22,16 +23,21 @@ const NoteMetadata = ({
   onStartEditingType,
   onStopEditingType,
 }: NoteMetadataProps) => {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return format(date, "HH:mm  dd.MM.yyyy");
+  };
+
   return (
     <div className="space-y-4 mb-8">
       <div className="grid grid-cols-2 gap-4">
         <div>
           <p className="text-sm text-muted-foreground">Created</p>
-          <p>{created_at}</p>
+          <p>{formatDate(created_at)}</p>
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Last Edited Time</p>
-          <p>{updated_at}</p>
+          <p>{formatDate(updated_at)}</p>
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Type</p>

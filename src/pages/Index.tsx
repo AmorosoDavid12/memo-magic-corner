@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, LogOut } from "lucide-react";
+import { Search, Plus, LogOut, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -36,6 +36,7 @@ const Index = () => {
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingType, setEditingType] = useState(false);
+  const [editingMainTitle, setEditingMainTitle] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -289,7 +290,30 @@ const Index = () => {
               />
 
               <div className="p-8 max-w-4xl mx-auto">
-                <h1 className="text-3xl font-bold mb-6">{selectedNote.title}</h1>
+                <div className="flex items-center gap-2 mb-6">
+                  {editingMainTitle ? (
+                    <Input
+                      type="text"
+                      value={selectedNote.title}
+                      onChange={(e) => handleEditTitle(selectedNote.id, e.target.value)}
+                      className="text-3xl font-bold h-auto py-1"
+                      onBlur={() => setEditingMainTitle(false)}
+                      autoFocus
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <h1 className="text-3xl font-bold">{selectedNote.title}</h1>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => setEditingMainTitle(true)}
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
                 
                 <NoteMetadata
                   created_at={selectedNote.created_at}
