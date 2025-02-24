@@ -197,18 +197,18 @@ const NotesList = ({
       }
       setSelectedNotes(newSelected);
     } else if (event.shiftKey && selectedNotes.size > 0) {
-      const lastSelectedId = Array.from(selectedNotes)[selectedNotes.size - 1];
+      const lastSelectedId = Array.from(selectedNotes).pop() as string;
       const lastSelectedIndex = notes.findIndex(note => note.id === lastSelectedId);
       const currentIndex = notes.findIndex(note => note.id === noteId);
       
       const start = Math.min(lastSelectedIndex, currentIndex);
       const end = Math.max(lastSelectedIndex, currentIndex);
       
-      const newSelected = new Set();
-      for (let i = start; i <= end; i++) {
-        newSelected.add(notes[i].id);
-      }
-      setSelectedNotes(newSelected);
+      const selectedIds = notes
+        .slice(start, end + 1)
+        .map(note => note.id);
+      
+      setSelectedNotes(new Set(selectedIds));
     } else {
       setSelectedNotes(new Set([noteId]));
     }
