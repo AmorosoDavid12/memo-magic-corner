@@ -22,7 +22,7 @@ const ColorExtension = Extension.create({
           if (!attributes.color) return {};
           return {
             'data-color': attributes.color,
-            style: `color: ${attributes.color}`,
+            style: `color: ${attributes.color} !important`,
           };
         },
       },
@@ -41,7 +41,7 @@ const ColorExtension = Extension.create({
               if (!attributes.color) return {};
               return {
                 'data-color': attributes.color,
-                style: `color: ${attributes.color}`,
+                style: `color: ${attributes.color} !important`,
               };
             },
           },
@@ -164,30 +164,30 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           cursor: nwse-resize;
         }
 
-        /* Preserve colors in lists */
-        .ProseMirror ul li *[data-color],
-        .ProseMirror ol li *[data-color] {
-          color: inherit;
+        /* Override any color inheritance from prose */
+        .prose [style*="color:"] {
+          color: var(--tw-prose-body);
         }
 
-        /* Ensure colors persist in read-only mode */
-        .ProseMirror[contenteditable="false"] [data-color] {
-          color: inherit !important;
+        /* Override Tailwind prose styles for colored text */
+        .prose [data-color] {
+          color: unset !important;
         }
 
-        /* Preserve colors when text is highlighted */
-        .ProseMirror mark[data-color] {
-          color: inherit !important;
+        /* Ensure styles are properly applied in read-only mode */
+        .ProseMirror[contenteditable="false"] [style*="color:"] {
+          color: unset !important;
         }
 
-        /* Reset prose color overrides */
-        .prose * {
-          color: inherit;
+        /* Preserve color in lists */
+        .ProseMirror ul li [style*="color:"],
+        .ProseMirror ol li [style*="color:"] {
+          color: unset !important;
         }
 
-        /* Ensure proper color inheritance */
-        [data-color] {
-          color: inherit;
+        /* Preserve color in highlighted text */
+        .ProseMirror mark [style*="color:"] {
+          color: unset !important;
         }
       `}</style>
     </div>
