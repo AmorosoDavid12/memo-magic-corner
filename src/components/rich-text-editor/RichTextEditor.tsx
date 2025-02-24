@@ -17,12 +17,12 @@ const ColorExtension = Extension.create({
     return {
       color: {
         default: null,
-        parseHTML: element => element.dataset.color,
+        parseHTML: element => element.getAttribute('data-color'),
         renderHTML: attributes => {
           if (!attributes.color) return {};
           return {
             'data-color': attributes.color,
-            class: `text-color-${attributes.color.replace('#', '')}`,
+            style: `color: ${attributes.color}`,
           };
         },
       },
@@ -36,12 +36,12 @@ const ColorExtension = Extension.create({
         attributes: {
           color: {
             default: null,
-            parseHTML: element => element.dataset.color,
+            parseHTML: element => element.getAttribute('data-color'),
             renderHTML: attributes => {
               if (!attributes.color) return {};
               return {
                 'data-color': attributes.color,
-                class: `text-color-${attributes.color.replace('#', '')}`,
+                style: `color: ${attributes.color}`,
               };
             },
           },
@@ -60,7 +60,22 @@ interface RichTextEditorProps {
 const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorProps) => {
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        bulletList: {
+          keepMarks: true,
+          keepAttributes: true,
+          HTMLAttributes: {
+            class: 'list-disc ml-4',
+          },
+        },
+        orderedList: {
+          keepMarks: true,
+          keepAttributes: true,
+          HTMLAttributes: {
+            class: 'list-decimal ml-4',
+          },
+        },
+      }),
       TextStyle,
       ColorExtension,
       FontSize,
@@ -149,11 +164,31 @@ const RichTextEditor = ({ content, onChange, readOnly = false }: RichTextEditorP
           cursor: nwse-resize;
         }
 
-        [data-color="#FF0000"] { color: #FF0000 !important; }
-        [data-color="#0000FF"] { color: #0000FF !important; }
-        [data-color="#00FF00"] { color: #00FF00 !important; }
-        [data-color="#000000"] { color: #000000 !important; }
-        [data-color="#6B7280"] { color: #6B7280 !important; }
+        /* Preserve colors in lists */
+        .ProseMirror ul li *[data-color],
+        .ProseMirror ol li *[data-color] {
+          color: inherit;
+        }
+
+        /* Ensure colors persist in read-only mode */
+        .ProseMirror[contenteditable="false"] [data-color] {
+          color: inherit !important;
+        }
+
+        /* Preserve colors when text is highlighted */
+        .ProseMirror mark[data-color] {
+          color: inherit !important;
+        }
+
+        /* Reset prose color overrides */
+        .prose * {
+          color: inherit;
+        }
+
+        /* Ensure proper color inheritance */
+        [data-color] {
+          color: inherit;
+        }
       `}</style>
     </div>
   );
