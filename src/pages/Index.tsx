@@ -27,6 +27,7 @@ interface Note {
   type: string;
   created_at: string;
   updated_at: string;
+  position: number;
 }
 
 const Index = () => {
@@ -50,7 +51,7 @@ const Index = () => {
         .from('notes')
         .select('*')
         .eq('user_id', user?.id)
-        .order('updated_at', { ascending: false });
+        .order('position', { ascending: true });
 
       if (error) throw error;
 
@@ -67,11 +68,14 @@ const Index = () => {
 
   const handleAddNote = async () => {
     try {
+      const maxPosition = notes.reduce((max, note) => Math.max(max, note.position), 0);
+      
       const newNote = {
         title: "New Note",
-        content: "<p></p>", // Initialize with a proper HTML structure
+        content: "<p></p>",
         type: "Note",
-        user_id: user?.id
+        user_id: user?.id,
+        position: maxPosition + 1
       };
 
       const { data, error } = await supabase
@@ -88,6 +92,26 @@ const Index = () => {
       toast.success('Note created successfully');
     } catch (error: any) {
       toast.error('Error creating note: ' + error.message);
+    }
+  };
+
+  const handleReorderNotes = async (reorderedNotes: Note[]) => {
+    try {
+      setNotes(reorderedNotes);
+
+      const updates = reorderedNotes.map((note, index) => ({
+        id: note.id,
+        position: index + 1
+      }));
+
+      const { error } = await supabase
+        .from('notes')
+        .upsert(updates, { onConflict: 'id' });
+
+      if (error) throw error;
+    } catch (error: any) {
+      toast.error('Error updating note positions: ' + error.message);
+      await fetchNotes();
     }
   };
 
@@ -228,13 +252,6 @@ const Index = () => {
     } catch (error: any) {
       toast.error("Error logging out: " + error.message);
     }
-  };
-
-  const handleReorderNotes = async (reorderedNotes: Note[]) => {
-    setNotes(reorderedNotes);
-    // If you want to persist the order in the database,
-    // you could add a `position` field to your notes table
-    // and update it here
   };
 
   return (
