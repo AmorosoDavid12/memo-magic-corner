@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, LogOut, Pencil } from "lucide-react";
+import { Search, Plus, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -179,6 +179,54 @@ const Index = () => {
       toast.success('Note created successfully');
     } catch (error: any) {
       toast.error('Error creating note: ' + error.message);
+    }
+  };
+
+  const handleAddNoteToFolder = async (folderId: string) => {
+    try {
+      const maxPosition = notes.reduce((max, note) => Math.max(max, note.position), 0);
+      
+      const newNote = {
+        title: "New Note",
+        content: "<p></p>",
+        type: "Note",
+        user_id: user?.id,
+        position: maxPosition + 1,
+        folder_id: folderId
+      };
+
+      const { data, error } = await supabase
+        .from('notes')
+        .insert([newNote])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setNotes(prevNotes => [data, ...prevNotes]);
+      setSelectedNote(data);
+      setEditingNoteId(data.id);
+      toast.success('Note created successfully');
+    } catch (error: any) {
+      toast.error('Error creating note: ' + error.message);
+    }
+  };
+
+  const handleDropNoteToFolder = async (noteId: string, targetFolderId: string | null) => {
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .update({ folder_id: targetFolderId })
+        .eq('id', noteId);
+
+      if (error) throw error;
+
+      setNotes(prevNotes => prevNotes.map(note => 
+        note.id === noteId ? { ...note, folder_id: targetFolderId } : note
+      ));
+      toast.success('Note moved successfully');
+    } catch (error: any) {
+      toast.error('Error moving note: ' + error.message);
     }
   };
 
@@ -374,7 +422,8 @@ const Index = () => {
                   onFolderCreate={handleAddFolder}
                   onFolderDelete={handleDeleteFolder}
                   onFolderRename={handleRenameFolder}
-                  onMoveNote={handleMoveNote}
+                  onMoveNote={handleDropNoteToFolder}
+                  onCreateNote={handleAddNoteToFolder}
                 />
               </SidebarGroup>
               <SidebarGroup>

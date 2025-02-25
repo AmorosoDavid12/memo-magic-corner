@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { ChevronRight, Folder as FolderIcon, Pencil, Trash2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -28,6 +27,7 @@ interface FoldersListProps {
   onFolderDelete: (folderId: string) => void;
   onFolderRename: (folderId: string, newName: string) => void;
   onMoveNote: (noteId: string, folderId: string | null) => void;
+  onCreateNote: (folderId: string) => void;
 }
 
 const SortableNote = ({ note, onClick }: { note: Note; onClick: () => void }) => {
@@ -66,7 +66,8 @@ export const FoldersList = ({
   onFolderCreate,
   onFolderDelete,
   onFolderRename,
-  onMoveNote
+  onMoveNote,
+  onCreateNote
 }: FoldersListProps) => {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [creatingFolder, setCreatingFolder] = useState(false);
@@ -124,14 +125,19 @@ export const FoldersList = ({
     const { active, over } = event;
 
     if (over) {
-      // If dragging within the same folder
       const draggedNote = notes.find(note => note.id === active.id);
       const targetNote = notes.find(note => note.id === over.id);
 
-      if (draggedNote && targetNote) {
-        // If the target note is in a different folder, move the note to that folder
-        if (draggedNote.folder_id !== targetNote.folder_id) {
-          onMoveNote(draggedNote.id, targetNote.folder_id);
+      if (draggedNote) {
+        if (targetNote) {
+          if (draggedNote.folder_id !== targetNote.folder_id) {
+            onMoveNote(draggedNote.id, targetNote.folder_id);
+          }
+        } else {
+          const targetFolderId = over.id.toString();
+          if (draggedNote.folder_id !== targetFolderId) {
+            onMoveNote(draggedNote.id, targetFolderId);
+          }
         }
       }
     }
@@ -151,7 +157,6 @@ export const FoldersList = ({
         </Button>
       </div>
 
-      {/* Folders list */}
       <div className="space-y-1">
         {folders.map((folder) => {
           const folderNotes = getFolderNotes(folder.id);
@@ -204,7 +209,7 @@ export const FoldersList = ({
                     className="h-6 w-6"
                     onClick={(e) => {
                       e.stopPropagation();
-                      // TODO: Implement note creation within folder
+                      onCreateNote(folder.id);
                     }}
                   >
                     <Plus className="h-3 w-3" />
@@ -250,7 +255,7 @@ export const FoldersList = ({
                         <SortableNote
                           key={note.id}
                           note={note}
-                          onClick={() => {/* TODO: Handle note selection */}}
+                          onClick={() => {/* Handle note selection if needed */}}
                         />
                       ))}
                     </SortableContext>
@@ -262,7 +267,6 @@ export const FoldersList = ({
         })}
       </div>
 
-      {/* Create folder dialog */}
       <AlertDialog open={creatingFolder} onOpenChange={setCreatingFolder}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -288,7 +292,6 @@ export const FoldersList = ({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Delete folder confirmation dialog */}
       <AlertDialog
         open={deletingFolderId !== null}
         onOpenChange={() => setDeletingFolderId(null)}
