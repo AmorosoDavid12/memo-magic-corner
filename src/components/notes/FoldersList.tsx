@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { ChevronRight, Folder as FolderIcon, Pencil, Trash } from "lucide-react";
+import { ChevronRight, Folder as FolderIcon, Pencil, Trash, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
