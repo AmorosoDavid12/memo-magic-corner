@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { ChevronRight, Folder as FolderIcon, Pencil, Trash, Plus } from "lucide-react";
+import { ChevronRight, Folder as FolderIcon, Pencil, Trash2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Folder, Note } from "@/types/notes";
+import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor } from "@dnd-kit/core";
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface FoldersListProps {
   folders: Folder[];
@@ -26,6 +29,34 @@ interface FoldersListProps {
   onFolderRename: (folderId: string, newName: string) => void;
   onMoveNote: (noteId: string, folderId: string | null) => void;
 }
+
+const SortableNote = ({ note, onClick }: { note: Note; onClick: () => void }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: note.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="text-sm px-2 py-1 rounded-md hover:bg-accent cursor-pointer"
+      onClick={onClick}
+    >
+      {note.title}
+    </div>
+  );
+};
 
 export const FoldersList = ({
   folders,
@@ -43,6 +74,13 @@ export const FoldersList = ({
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editingFolderName, setEditingFolderName] = useState("");
   const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const toggleFolder = (e: React.MouseEvent, folderId: string) => {
     e.stopPropagation();
@@ -164,21 +202,49 @@ export const FoldersList = ({
                       setDeletingFolderId(folder.id);
                     }}
                   >
-                    <Trash className="h-3 w-3" />
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Trigger note creation within this folder
+                      // TODO: Implement note creation within folder
+                    }}
+                  >
+                    <Plus className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
 
               {isExpanded && folderNotes.length > 0 && (
                 <div className="pl-8 space-y-1 mt-1">
-                  {folderNotes.map((note) => (
-                    <div
-                      key={note.id}
-                      className="text-sm px-2 py-1 rounded-md hover:bg-accent cursor-pointer"
+                  <DndContext 
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={(event) => {
+                      const { active, over } = event;
+                      if (over && active.id !== over.id) {
+                        // Handle note reordering within folder
+                        // TODO: Implement note reordering
+                      }
+                    }}
+                  >
+                    <SortableContext
+                      items={folderNotes.map(note => note.id)}
+                      strategy={verticalListSortingStrategy}
                     >
-                      {note.title}
-                    </div>
-                  ))}
+                      {folderNotes.map((note) => (
+                        <SortableNote
+                          key={note.id}
+                          note={note}
+                          onClick={() => {/* TODO: Handle note selection */}}
+                        />
+                      ))}
+                    </SortableContext>
+                  </DndContext>
                 </div>
               )}
             </div>
