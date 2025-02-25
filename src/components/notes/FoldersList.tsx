@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { ChevronRight, Folder as FolderIcon, MoreVertical, Plus } from "lucide-react";
+import { ChevronRight, Folder as FolderIcon, Pencil, Trash } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,7 +44,8 @@ export const FoldersList = ({
   const [editingFolderName, setEditingFolderName] = useState("");
   const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
 
-  const toggleFolder = (folderId: string) => {
+  const toggleFolder = (e: React.MouseEvent, folderId: string) => {
+    e.stopPropagation();
     const newExpanded = new Set(expandedFolders);
     if (newExpanded.has(folderId)) {
       newExpanded.delete(folderId);
@@ -103,54 +104,70 @@ export const FoldersList = ({
 
           return (
             <div key={folder.id} className="relative">
-              <Button
-                variant="ghost"
+              <div
                 className={cn(
-                  "w-full justify-start px-2 py-1 h-8",
+                  "flex items-center px-2 py-1 rounded-md hover:bg-accent group",
                   selectedFolderId === folder.id && "bg-accent"
                 )}
-                onClick={() => onFolderSelect(folder.id)}
               >
-                <ChevronRight
-                  className={cn(
-                    "h-4 w-4 shrink-0 transition-transform mr-1",
-                    isExpanded && "transform rotate-90"
+                <div className="flex-1 flex items-center" onClick={() => onFolderSelect(folder.id)}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 p-0 hover:bg-transparent"
+                    onClick={(e) => toggleFolder(e, folder.id)}
+                  >
+                    <ChevronRight
+                      className={cn(
+                        "h-4 w-4 shrink-0 transition-transform",
+                        isExpanded && "transform rotate-90"
+                      )}
+                    />
+                  </Button>
+                  <FolderIcon className="h-4 w-4 mx-2" />
+                  {editingFolderId === folder.id ? (
+                    <Input
+                      value={editingFolderName}
+                      onChange={(e) => setEditingFolderName(e.target.value)}
+                      onBlur={handleRenameFolder}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleRenameFolder();
+                        if (e.key === 'Escape') setEditingFolderId(null);
+                      }}
+                      className="h-6 py-1 px-1"
+                      autoFocus
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <span className="text-sm">{folder.name}</span>
                   )}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFolder(folder.id);
-                  }}
-                />
-                <FolderIcon className="h-4 w-4 mr-2" />
-                {editingFolderId === folder.id ? (
-                  <Input
-                    value={editingFolderName}
-                    onChange={(e) => setEditingFolderName(e.target.value)}
-                    onBlur={handleRenameFolder}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleRenameFolder();
-                      if (e.key === 'Escape') setEditingFolderId(null);
+                </div>
+                <div className="flex opacity-0 group-hover:opacity-100 ml-auto">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingFolderId(folder.id);
+                      setEditingFolderName(folder.name);
                     }}
-                    className="h-6 py-1 px-1"
-                    autoFocus
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                ) : (
-                  <span>{folder.name}</span>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 ml-auto opacity-0 group-hover:opacity-100"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditingFolderId(folder.id);
-                    setEditingFolderName(folder.name);
-                  }}
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </Button>
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeletingFolderId(folder.id);
+                    }}
+                  >
+                    <Trash className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
 
               {isExpanded && folderNotes.length > 0 && (
                 <div className="pl-8 space-y-1 mt-1">
