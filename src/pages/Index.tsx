@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Search, Plus, LogOut, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -97,20 +98,21 @@ const Index = () => {
 
   const handleReorderNotes = async (reorderedNotes: Note[]) => {
     try {
+      // Update local state immediately for better UX
       setNotes(reorderedNotes);
 
-      const updates = reorderedNotes.map((note, index) => ({
-        id: note.id,
-        position: index + 1
-      }));
+      // Update notes one by one to avoid type issues with bulk update
+      for (const [index, note] of reorderedNotes.entries()) {
+        const { error } = await supabase
+          .from('notes')
+          .update({ position: index + 1 })
+          .eq('id', note.id);
 
-      const { error } = await supabase
-        .from('notes')
-        .upsert(updates, { onConflict: 'id' });
-
-      if (error) throw error;
+        if (error) throw error;
+      }
     } catch (error: any) {
       toast.error('Error updating note positions: ' + error.message);
+      // Revert to original order on error by re-fetching
       await fetchNotes();
     }
   };
