@@ -15,8 +15,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Folder, Note } from "@/types/notes";
-import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor } from "@dnd-kit/core";
-import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
 interface FoldersListProps {
@@ -120,6 +120,23 @@ export const FoldersList = ({
     return notes.filter(note => note.folder_id === folderId);
   };
 
+  const handleNoteDragEnd = (event: DragEndEvent, folderId: string) => {
+    const { active, over } = event;
+
+    if (over) {
+      // If dragging within the same folder
+      const draggedNote = notes.find(note => note.id === active.id);
+      const targetNote = notes.find(note => note.id === over.id);
+
+      if (draggedNote && targetNote) {
+        // If the target note is in a different folder, move the note to that folder
+        if (draggedNote.folder_id !== targetNote.folder_id) {
+          onMoveNote(draggedNote.id, targetNote.folder_id);
+        }
+      }
+    }
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between px-2">
@@ -187,6 +204,17 @@ export const FoldersList = ({
                     className="h-6 w-6"
                     onClick={(e) => {
                       e.stopPropagation();
+                      // TODO: Implement note creation within folder
+                    }}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setEditingFolderId(folder.id);
                       setEditingFolderName(folder.name);
                     }}
@@ -196,7 +224,7 @@ export const FoldersList = ({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6"
+                    className="h-6 w-6 text-destructive hover:text-destructive"
                     onClick={(e) => {
                       e.stopPropagation();
                       setDeletingFolderId(folder.id);
@@ -204,33 +232,15 @@ export const FoldersList = ({
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Trigger note creation within this folder
-                      // TODO: Implement note creation within folder
-                    }}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
                 </div>
               </div>
 
-              {isExpanded && folderNotes.length > 0 && (
+              {isExpanded && (
                 <div className="pl-8 space-y-1 mt-1">
                   <DndContext 
                     sensors={sensors}
                     collisionDetection={closestCenter}
-                    onDragEnd={(event) => {
-                      const { active, over } = event;
-                      if (over && active.id !== over.id) {
-                        // Handle note reordering within folder
-                        // TODO: Implement note reordering
-                      }
-                    }}
+                    onDragEnd={(event) => handleNoteDragEnd(event, folder.id)}
                   >
                     <SortableContext
                       items={folderNotes.map(note => note.id)}
