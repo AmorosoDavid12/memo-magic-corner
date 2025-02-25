@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Search, Plus, LogOut, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -20,31 +19,41 @@ import RichTextEditor from "@/components/rich-text-editor";
 import NotesList from "@/components/notes/NotesList";
 import NoteHeader from "@/components/notes/NoteHeader";
 import NoteMetadata from "@/components/notes/NoteMetadata";
-
-interface Note {
-  id: string;
-  title: string;
-  content: string;
-  type: string;
-  created_at: string;
-  updated_at: string;
-  position: number;
-}
+import { FoldersList } from "@/components/notes/FoldersList";
+import { Note, Folder } from "@/types/notes";
 
 const Index = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [notes, setNotes] = useState<Note[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingType, setEditingType] = useState(false);
   const [editingMainTitle, setEditingMainTitle] = useState(false);
 
   useEffect(() => {
     if (user) {
+      fetchFolders();
       fetchNotes();
     }
   }, [user]);
+
+  const fetchFolders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('folders')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('position', { ascending: true });
+
+      if (error) throw error;
+      setFolders(data || []);
+    } catch (error: any) {
+      toast.error('Error loading folders: ' + error.message);
+    }
+  };
 
   const fetchNotes = async () => {
     try {
@@ -59,11 +68,88 @@ const Index = () => {
       setNotes(data || []);
       if (data && data.length > 0 && !selectedNote) {
         setSelectedNote(data[0]);
-      } else if (data && data.length === 0) {
-        setSelectedNote(null);
       }
     } catch (error: any) {
       toast.error('Error loading notes: ' + error.message);
+    }
+  };
+
+  const handleAddFolder = async (name: string) => {
+    try {
+      const maxPosition = folders.reduce((max, folder) => Math.max(max, folder.position), 0);
+      
+      const { data, error } = await supabase
+        .from('folders')
+        .insert([{
+          name,
+          user_id: user?.id,
+          position: maxPosition + 1
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setFolders(prev => [...prev, data]);
+      toast.success('Folder created successfully');
+    } catch (error: any) {
+      toast.error('Error creating folder: ' + error.message);
+    }
+  };
+
+  const handleDeleteFolder = async (folderId: string) => {
+    try {
+      const { error } = await supabase
+        .from('folders')
+        .delete()
+        .eq('id', folderId);
+
+      if (error) throw error;
+
+      setFolders(prev => prev.filter(f => f.id !== folderId));
+      if (selectedFolderId === folderId) {
+        setSelectedFolderId(null);
+      }
+      await fetchNotes(); // Refresh notes as some might have been cascade deleted
+      toast.success('Folder deleted successfully');
+    } catch (error: any) {
+      toast.error('Error deleting folder: ' + error.message);
+    }
+  };
+
+  const handleRenameFolder = async (folderId: string, newName: string) => {
+    try {
+      const { error } = await supabase
+        .from('folders')
+        .update({ name: newName })
+        .eq('id', folderId);
+
+      if (error) throw error;
+
+      setFolders(prev => prev.map(f => 
+        f.id === folderId ? { ...f, name: newName } : f
+      ));
+      toast.success('Folder renamed successfully');
+    } catch (error: any) {
+      toast.error('Error renaming folder: ' + error.message);
+    }
+  };
+
+  const handleMoveNote = async (noteId: string, folderId: string | null) => {
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .update({ folder_id: folderId })
+        .eq('id', noteId);
+
+      if (error) throw error;
+
+      setNotes(prev => prev.map(n => 
+        n.id === noteId ? { ...n, folder_id: folderId } : n
+      ));
+      toast.success('Note moved successfully');
+    } catch (error: any) {
+      toast.error('Error moving note: ' + error.message);
     }
   };
 
@@ -98,10 +184,8 @@ const Index = () => {
 
   const handleReorderNotes = async (reorderedNotes: Note[]) => {
     try {
-      // Update local state immediately for better UX
       setNotes(reorderedNotes);
 
-      // Update notes one by one to avoid type issues with bulk update
       for (const [index, note] of reorderedNotes.entries()) {
         const { error } = await supabase
           .from('notes')
@@ -112,7 +196,6 @@ const Index = () => {
       }
     } catch (error: any) {
       toast.error('Error updating note positions: ' + error.message);
-      // Revert to original order on error by re-fetching
       await fetchNotes();
     }
   };
@@ -256,6 +339,10 @@ const Index = () => {
     }
   };
 
+  const filteredNotes = selectedFolderId
+    ? notes.filter(note => note.folder_id === selectedFolderId)
+    : notes.filter(note => !note.folder_id);
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -279,10 +366,22 @@ const Index = () => {
             </div>
             <SidebarContent className="flex-1">
               <SidebarGroup>
+                <FoldersList
+                  folders={folders}
+                  notes={notes}
+                  selectedFolderId={selectedFolderId}
+                  onFolderSelect={setSelectedFolderId}
+                  onFolderCreate={handleAddFolder}
+                  onFolderDelete={handleDeleteFolder}
+                  onFolderRename={handleRenameFolder}
+                  onMoveNote={handleMoveNote}
+                />
+              </SidebarGroup>
+              <SidebarGroup>
                 <SidebarGroupLabel>Notes</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <NotesList
-                    notes={notes}
+                    notes={filteredNotes}
                     editingNoteId={editingNoteId}
                     onNoteSelect={handleNoteSelect}
                     onEditTitle={handleEditTitle}

@@ -1,0 +1,222 @@
+
+import { useState } from "react";
+import { ChevronRight, Folder as FolderIcon, MoreVertical, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Folder, Note } from "@/types/notes";
+
+interface FoldersListProps {
+  folders: Folder[];
+  notes: Note[];
+  selectedFolderId: string | null;
+  onFolderSelect: (folderId: string | null) => void;
+  onFolderCreate: (name: string) => void;
+  onFolderDelete: (folderId: string) => void;
+  onFolderRename: (folderId: string, newName: string) => void;
+  onMoveNote: (noteId: string, folderId: string | null) => void;
+}
+
+export const FoldersList = ({
+  folders,
+  notes,
+  selectedFolderId,
+  onFolderSelect,
+  onFolderCreate,
+  onFolderDelete,
+  onFolderRename,
+  onMoveNote
+}: FoldersListProps) => {
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [editingFolderName, setEditingFolderName] = useState("");
+  const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
+
+  const toggleFolder = (folderId: string) => {
+    const newExpanded = new Set(expandedFolders);
+    if (newExpanded.has(folderId)) {
+      newExpanded.delete(folderId);
+    } else {
+      newExpanded.add(folderId);
+    }
+    setExpandedFolders(newExpanded);
+  };
+
+  const handleCreateFolder = () => {
+    if (newFolderName.trim()) {
+      onFolderCreate(newFolderName.trim());
+      setNewFolderName("");
+      setCreatingFolder(false);
+    }
+  };
+
+  const handleRenameFolder = () => {
+    if (editingFolderId && editingFolderName.trim()) {
+      onFolderRename(editingFolderId, editingFolderName.trim());
+      setEditingFolderId(null);
+      setEditingFolderName("");
+    }
+  };
+
+  const handleDeleteFolder = () => {
+    if (deletingFolderId) {
+      onFolderDelete(deletingFolderId);
+      setDeletingFolderId(null);
+    }
+  };
+
+  const getFolderNotes = (folderId: string) => {
+    return notes.filter(note => note.folder_id === folderId);
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between px-2">
+        <h3 className="text-sm font-medium">Folders</h3>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6"
+          onClick={() => setCreatingFolder(true)}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Folders list */}
+      <div className="space-y-1">
+        {folders.map((folder) => {
+          const folderNotes = getFolderNotes(folder.id);
+          const isExpanded = expandedFolders.has(folder.id);
+
+          return (
+            <div key={folder.id} className="relative">
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start px-2 py-1 h-8",
+                  selectedFolderId === folder.id && "bg-accent"
+                )}
+                onClick={() => onFolderSelect(folder.id)}
+              >
+                <ChevronRight
+                  className={cn(
+                    "h-4 w-4 shrink-0 transition-transform mr-1",
+                    isExpanded && "transform rotate-90"
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFolder(folder.id);
+                  }}
+                />
+                <FolderIcon className="h-4 w-4 mr-2" />
+                {editingFolderId === folder.id ? (
+                  <Input
+                    value={editingFolderName}
+                    onChange={(e) => setEditingFolderName(e.target.value)}
+                    onBlur={handleRenameFolder}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleRenameFolder();
+                      if (e.key === 'Escape') setEditingFolderId(null);
+                    }}
+                    className="h-6 py-1 px-1"
+                    autoFocus
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <span>{folder.name}</span>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 ml-auto opacity-0 group-hover:opacity-100"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingFolderId(folder.id);
+                    setEditingFolderName(folder.name);
+                  }}
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </Button>
+
+              {isExpanded && folderNotes.length > 0 && (
+                <div className="pl-8 space-y-1 mt-1">
+                  {folderNotes.map((note) => (
+                    <div
+                      key={note.id}
+                      className="text-sm px-2 py-1 rounded-md hover:bg-accent cursor-pointer"
+                    >
+                      {note.title}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Create folder dialog */}
+      <AlertDialog open={creatingFolder} onOpenChange={setCreatingFolder}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Create new folder</AlertDialogTitle>
+            <AlertDialogDescription>
+              <Input
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                placeholder="Folder name"
+                className="mt-2"
+                autoFocus
+              />
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCreatingFolder(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleCreateFolder}>
+              Create
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete folder confirmation dialog */}
+      <AlertDialog
+        open={deletingFolderId !== null}
+        onOpenChange={() => setDeletingFolderId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete folder</AlertDialogTitle>
+            <AlertDialogDescription>
+              This folder contains notes. Are you sure you want to delete it? All notes inside will be deleted as well.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeletingFolderId(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteFolder} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
