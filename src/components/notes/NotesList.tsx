@@ -34,6 +34,7 @@ interface Note {
   type: string;
   created_at: string;
   updated_at: string;
+  folder_id?: string | null;
 }
 
 interface NotesListProps {
@@ -45,6 +46,7 @@ interface NotesListProps {
   onStartEditing: (noteId: string) => void;
   onStopEditing: () => void;
   onReorder: (notes: Note[]) => void;
+  onMoveNoteToFolder?: (noteId: string, folderId: string | null) => void;
 }
 
 interface SortableNoteItemProps {
@@ -77,12 +79,19 @@ const SortableNoteItem = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: note.id });
+  } = useSortable({ 
+    id: note.id,
+    data: {
+      type: 'note',
+      note
+    }
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 1 : 0,
+    opacity: isDragging ? 0.5 : 1,
   };
 
   return (
@@ -164,6 +173,7 @@ const NotesList = ({
   onStartEditing,
   onStopEditing,
   onReorder,
+  onMoveNoteToFolder,
 }: NotesListProps) => {
   const [selectedNotes, setSelectedNotes] = useState<Set<string>>(new Set());
 
@@ -177,12 +187,30 @@ const NotesList = ({
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
-    if (over && active.id !== over.id) {
-      const oldIndex = notes.findIndex((note) => note.id === active.id);
-      const newIndex = notes.findIndex((note) => note.id === over.id);
-      const newNotes = arrayMove(notes, oldIndex, newIndex);
-      onReorder(newNotes);
+    if (!over) return;
+
+    if (active.id === over.id) return;
+
+    // Check if the target has a data-folder-id attribute
+    const targetElement = document.elementFromPoint(
+      over.rect.current.translated?.left ?? 0,
+      over.rect.current.translated?.top ?? 0
+    );
+    
+    const folderElement = targetElement?.closest('[data-folder-id]');
+    if (folderElement) {
+      const folderId = folderElement.getAttribute('data-folder-id');
+      if (onMoveNoteToFolder && active.data.current?.type === 'note') {
+        onMoveNoteToFolder(active.id.toString(), folderId);
+        return;
+      }
     }
+
+    // If not dropping on a folder, handle regular reordering
+    const oldIndex = notes.findIndex((note) => note.id === active.id);
+    const newIndex = notes.findIndex((note) => note.id === over.id);
+    const newNotes = arrayMove(notes, oldIndex, newIndex);
+    onReorder(newNotes);
   };
 
   const handleNoteSelect = (noteId: string, event: React.MouseEvent) => {
