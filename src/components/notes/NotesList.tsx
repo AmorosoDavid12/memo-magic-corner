@@ -193,8 +193,8 @@ const NotesList = ({
 
     // Check if the target has a data-folder-id attribute
     const targetElement = document.elementFromPoint(
-      over.rect.x ?? 0,
-      over.rect.y ?? 0
+      over.rect.left ?? 0,
+      over.rect.top ?? 0
     );
     
     const folderElement = targetElement?.closest('[data-folder-id]');
