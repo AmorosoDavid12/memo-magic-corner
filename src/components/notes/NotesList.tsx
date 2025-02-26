@@ -27,16 +27,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-
-interface Note {
-  id: string;
-  title: string;
-  content: string;
-  type: string;
-  created_at: string;
-  updated_at: string;
-  folder_id?: string | null;
-}
+import { Note } from "@/types/notes";
 
 interface NotesListProps {
   notes: Note[];
@@ -47,7 +38,6 @@ interface NotesListProps {
   onStartEditing: (noteId: string) => void;
   onStopEditing: () => void;
   onReorder: (notes: Note[]) => void;
-  onMoveNoteToFolder?: (noteId: string, folderId: string | null) => void;
 }
 
 interface SortableNoteItemProps {
@@ -80,13 +70,7 @@ const SortableNoteItem = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ 
-    id: note.id,
-    data: {
-      type: 'note',
-      note
-    }
-  });
+  } = useSortable({ id: note.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -174,7 +158,6 @@ const NotesList = ({
   onStartEditing,
   onStopEditing,
   onReorder,
-  onMoveNoteToFolder,
 }: NotesListProps) => {
   const [selectedNotes, setSelectedNotes] = useState<Set<string>>(new Set());
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -202,15 +185,6 @@ const NotesList = ({
 
     if (active.id === over.id) return;
 
-    // Check if dropping on a folder
-    if (over.data.current?.type === 'folder') {
-      if (onMoveNoteToFolder) {
-        onMoveNoteToFolder(active.id.toString(), over.id.toString());
-        return;
-      }
-    }
-
-    // If not dropping on a folder, handle regular reordering
     const oldIndex = notes.findIndex((note) => note.id === active.id);
     const newIndex = notes.findIndex((note) => note.id === over.id);
     const newNotes = arrayMove(notes, oldIndex, newIndex);

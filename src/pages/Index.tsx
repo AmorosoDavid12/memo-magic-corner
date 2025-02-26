@@ -15,22 +15,18 @@ import {
 } from "@/components/ui/sidebar";
 import { toast } from "sonner";
 import { Editor } from "@/components/editor";
-import { FoldersList } from "@/components/notes/FoldersList";
 import NotesList from "@/components/notes/NotesList";
-import { Note, Folder } from "@/types/notes";
+import { Note } from "@/types/notes";
 
 const Index = () => {
   const { supabase } = useSupabase();
   const [notes, setNotes] = useState<Note[]>([]);
-  const [folders, setFolders] = useState<Folder[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetchNotes();
-    fetchFolders();
   }, []);
 
   const fetchNotes = async () => {
@@ -49,19 +45,6 @@ const Index = () => {
       return;
     }
     setNotes(data);
-  };
-
-  const fetchFolders = async () => {
-    const { data: userData } = await supabase.auth.getUser();
-    const { data, error } = await supabase
-      .from("folders")
-      .select("*")
-      .eq('user_id', userData.user.id);
-    if (error) {
-      toast.error("Error fetching folders: " + error.message);
-      return;
-    }
-    setFolders(data);
   };
 
   const handleAddNote = async () => {
@@ -90,85 +73,6 @@ const Index = () => {
     setNotes((prev) => [...prev, data]);
     setSelectedNote(data);
     setEditingNoteId(data.id);
-  };
-
-  const handleAddNoteToFolder = async (folderId: string) => {
-    const { data: userData } = await supabase.auth.getUser();
-    const position = notes.length + 1;
-
-    const newNote = {
-      title: "Untitled",
-      content: "",
-      type: "doc",
-      folder_id: folderId,
-      user_id: userData.user.id,
-      position
-    };
-
-    const { data, error } = await supabase
-      .from("notes")
-      .insert([newNote])
-      .select()
-      .single();
-
-    if (error) {
-      toast.error("Error creating note: " + error.message);
-      return;
-    }
-
-    setNotes((prev) => [...prev, data]);
-    setSelectedNote(data);
-    setEditingNoteId(data.id);
-  };
-
-  const handleAddFolder = async (name: string) => {
-    const { data: userData } = await supabase.auth.getUser();
-    const position = folders.length + 1;
-
-    const { data, error } = await supabase
-      .from("folders")
-      .insert([{ name, user_id: userData.user.id, position }])
-      .select()
-      .single();
-
-    if (error) {
-      toast.error("Error creating folder: " + error.message);
-      return;
-    }
-
-    setFolders((prev) => [...prev, data]);
-  };
-
-  const handleDeleteFolder = async (folderId: string) => {
-    const { error } = await supabase.from("folders").delete().eq("id", folderId);
-
-    if (error) {
-      toast.error("Error deleting folder: " + error.message);
-      return;
-    }
-
-    setFolders((prev) => prev.filter((folder) => folder.id !== folderId));
-    if (selectedFolderId === folderId) {
-      setSelectedFolderId(null);
-    }
-  };
-
-  const handleRenameFolder = async (folderId: string, newName: string) => {
-    const { error } = await supabase
-      .from("folders")
-      .update({ name: newName })
-      .eq("id", folderId);
-
-    if (error) {
-      toast.error("Error renaming folder: " + error.message);
-      return;
-    }
-
-    setFolders((prev) =>
-      prev.map((folder) =>
-        folder.id === folderId ? { ...folder, name: newName } : folder
-      )
-    );
   };
 
   const handleNoteSelect = (note: Note) => {
@@ -226,30 +130,6 @@ const Index = () => {
     setNotes(reorderedNotes);
   };
 
-  const handleMoveNoteToFolder = async (noteId: string, folderId: string | null) => {
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from('notes')
-        .update({ 
-          folder_id: folderId,
-          user_id: userData.user.id 
-        })
-        .eq('id', noteId)
-        .eq('user_id', userData.user.id);
-
-      if (error) throw error;
-
-      setNotes(prevNotes => prevNotes.map(note => 
-        note.id === noteId ? { ...note, folder_id: folderId } : note
-      ));
-
-      toast.success('Note moved successfully');
-    } catch (error: any) {
-      toast.error('Error moving note: ' + error.message);
-    }
-  };
-
   const filteredNotes = notes.filter((note) =>
     note.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -265,20 +145,6 @@ const Index = () => {
               </div>
             </SidebarHeader>
             <SidebarContent className="flex-1">
-              <SidebarGroup>
-                <FoldersList
-                  folders={folders}
-                  notes={notes}
-                  selectedFolderId={selectedFolderId}
-                  onFolderSelect={setSelectedFolderId}
-                  onFolderCreate={handleAddFolder}
-                  onFolderDelete={handleDeleteFolder}
-                  onFolderRename={handleRenameFolder}
-                  onMoveNote={handleMoveNoteToFolder}
-                  onCreateNote={handleAddNoteToFolder}
-                />
-              </SidebarGroup>
-              <Separator />
               <SidebarGroup>
                 <SidebarGroupContent>
                   <div className="flex items-center px-2">
@@ -306,7 +172,6 @@ const Index = () => {
                     onStartEditing={handleStartEditing}
                     onStopEditing={handleStopEditing}
                     onReorder={handleReorderNotes}
-                    onMoveNoteToFolder={handleMoveNoteToFolder}
                   />
                 </SidebarGroupContent>
               </SidebarGroup>
