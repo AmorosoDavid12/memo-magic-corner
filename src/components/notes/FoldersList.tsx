@@ -14,8 +14,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Folder, Note } from "@/types/notes";
-import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from "@dnd-kit/core";
-import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
+import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent, DragOverlay } from "@dnd-kit/core";
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
 interface FoldersListProps {
@@ -75,6 +75,7 @@ export const FoldersList = ({
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editingFolderName, setEditingFolderName] = useState("");
   const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -121,22 +122,24 @@ export const FoldersList = ({
     return notes.filter(note => note.folder_id === folderId);
   };
 
-  const handleNoteDragEnd = (event: DragEndEvent, folderId: string) => {
+  const handleDragStart = (event: DragEndEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    setActiveId(null);
 
     if (over) {
       const draggedNote = notes.find(note => note.id === active.id);
-      const targetNote = notes.find(note => note.id === over.id);
-
       if (draggedNote) {
-        if (targetNote) {
-          if (draggedNote.folder_id !== targetNote.folder_id) {
-            onMoveNote(draggedNote.id, targetNote.folder_id);
-          }
+        const targetFolder = folders.find(folder => folder.id === over.id);
+        if (targetFolder) {
+          onMoveNote(draggedNote.id, targetFolder.id);
         } else {
-          const targetFolderId = over.id.toString();
-          if (draggedNote.folder_id !== targetFolderId) {
-            onMoveNote(draggedNote.id, targetFolderId);
+          const targetNote = notes.find(note => note.id === over.id);
+          if (targetNote && draggedNote.folder_id !== targetNote.folder_id) {
+            onMoveNote(draggedNote.id, targetNote.folder_id);
           }
         }
       }
@@ -144,109 +147,110 @@ export const FoldersList = ({
   };
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between px-2">
-        <h3 className="text-sm font-medium">Folders</h3>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6"
-          onClick={() => setCreatingFolder(true)}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
-      </div>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="space-y-2">
+        <div className="flex items-center justify-between px-2">
+          <h3 className="text-sm font-medium">Folders</h3>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={() => setCreatingFolder(true)}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
 
-      <div className="space-y-1">
-        {folders.map((folder) => {
-          const folderNotes = getFolderNotes(folder.id);
-          const isExpanded = expandedFolders.has(folder.id);
+        <div className="space-y-1">
+          {folders.map((folder) => {
+            const folderNotes = getFolderNotes(folder.id);
+            const isExpanded = expandedFolders.has(folder.id);
 
-          return (
-            <div key={folder.id} className="relative">
-              <div
-                className={cn(
-                  "flex items-center px-2 py-1 rounded-md hover:bg-accent group",
-                  selectedFolderId === folder.id && "bg-accent"
-                )}
-              >
-                <div className="flex-1 flex items-center" onClick={() => onFolderSelect(folder.id)}>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 p-0 hover:bg-transparent"
-                    onClick={(e) => toggleFolder(e, folder.id)}
-                  >
-                    <ChevronRight
-                      className={cn(
-                        "h-4 w-4 shrink-0 transition-transform",
-                        isExpanded && "transform rotate-90"
-                      )}
-                    />
-                  </Button>
-                  <FolderIcon className="h-4 w-4 mx-2" />
-                  {editingFolderId === folder.id ? (
-                    <Input
-                      value={editingFolderName}
-                      onChange={(e) => setEditingFolderName(e.target.value)}
-                      onBlur={handleRenameFolder}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleRenameFolder();
-                        if (e.key === 'Escape') setEditingFolderId(null);
-                      }}
-                      className="h-6 py-1 px-1"
-                      autoFocus
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  ) : (
-                    <span className="text-sm">{folder.name}</span>
+            return (
+              <div key={folder.id} className="relative" data-folder-id={folder.id}>
+                <div
+                  className={cn(
+                    "flex items-center px-2 py-1 rounded-md hover:bg-accent group",
+                    selectedFolderId === folder.id && "bg-accent"
                   )}
+                >
+                  <div className="flex-1 flex items-center" onClick={() => onFolderSelect(folder.id)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 p-0 hover:bg-transparent"
+                      onClick={(e) => toggleFolder(e, folder.id)}
+                    >
+                      <ChevronRight
+                        className={cn(
+                          "h-4 w-4 shrink-0 transition-transform",
+                          isExpanded && "transform rotate-90"
+                        )}
+                      />
+                    </Button>
+                    <FolderIcon className="h-4 w-4 mx-2" />
+                    {editingFolderId === folder.id ? (
+                      <Input
+                        value={editingFolderName}
+                        onChange={(e) => setEditingFolderName(e.target.value)}
+                        onBlur={handleRenameFolder}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleRenameFolder();
+                          if (e.key === 'Escape') setEditingFolderId(null);
+                        }}
+                        className="h-6 py-1 px-1"
+                        autoFocus
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      <span className="text-sm">{folder.name}</span>
+                    )}
+                  </div>
+                  <div className="flex opacity-0 group-hover:opacity-100 ml-auto">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCreateNote(folder.id);
+                      }}
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingFolderId(folder.id);
+                        setEditingFolderName(folder.name);
+                      }}
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-destructive hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeletingFolderId(folder.id);
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex opacity-0 group-hover:opacity-100 ml-auto">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onCreateNote(folder.id);
-                    }}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingFolderId(folder.id);
-                      setEditingFolderName(folder.name);
-                    }}
-                  >
-                    <Pencil className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-destructive hover:text-destructive"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeletingFolderId(folder.id);
-                    }}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
 
-              {isExpanded && (
-                <div className="pl-8 space-y-1 mt-1">
-                  <DndContext 
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={(event) => handleNoteDragEnd(event, folder.id)}
-                  >
+                {isExpanded && (
+                  <div className="pl-8 space-y-1 mt-1">
                     <SortableContext
                       items={folderNotes.map(note => note.id)}
                       strategy={verticalListSortingStrategy}
@@ -259,60 +263,68 @@ export const FoldersList = ({
                         />
                       ))}
                     </SortableContext>
-                  </DndContext>
-                </div>
-              )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <AlertDialog open={creatingFolder} onOpenChange={setCreatingFolder}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Create new folder</AlertDialogTitle>
+              <AlertDialogDescription>
+                <Input
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  placeholder="Folder name"
+                  className="mt-2"
+                  autoFocus
+                />
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setCreatingFolder(false)}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleCreateFolder}>
+                Create
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog
+          open={deletingFolderId !== null}
+          onOpenChange={() => setDeletingFolderId(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete folder</AlertDialogTitle>
+              <AlertDialogDescription>
+                This folder contains notes. Are you sure you want to delete it? All notes inside will be deleted as well.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setDeletingFolderId(null)}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteFolder} className="bg-destructive text-destructive-foreground">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <DragOverlay>
+          {activeId ? (
+            <div className="text-sm px-2 py-1 rounded-md bg-accent">
+              {notes.find(note => note.id === activeId)?.title}
             </div>
-          );
-        })}
+          ) : null}
+        </DragOverlay>
       </div>
-
-      <AlertDialog open={creatingFolder} onOpenChange={setCreatingFolder}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Create new folder</AlertDialogTitle>
-            <AlertDialogDescription>
-              <Input
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                placeholder="Folder name"
-                className="mt-2"
-                autoFocus
-              />
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setCreatingFolder(false)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleCreateFolder}>
-              Create
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
-        open={deletingFolderId !== null}
-        onOpenChange={() => setDeletingFolderId(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete folder</AlertDialogTitle>
-            <AlertDialogDescription>
-              This folder contains notes. Are you sure you want to delete it? All notes inside will be deleted as well.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeletingFolderId(null)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteFolder} className="bg-destructive text-destructive-foreground">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+    </DndContext>
   );
 };
