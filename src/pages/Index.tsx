@@ -1,3 +1,4 @@
+
 import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSupabase } from "@/lib/supabase/supabase-provider";
@@ -33,7 +34,16 @@ const Index = () => {
   }, []);
 
   const fetchNotes = async () => {
-    const { data, error } = await supabase.from("notes").select("*");
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError) {
+      toast.error("Error getting user: " + userError.message);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("notes")
+      .select("*")
+      .eq('user_id', userData.user.id);
     if (error) {
       toast.error("Error fetching notes: " + error.message);
       return;
@@ -42,7 +52,11 @@ const Index = () => {
   };
 
   const fetchFolders = async () => {
-    const { data, error } = await supabase.from("folders").select("*");
+    const { data: userData } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from("folders")
+      .select("*")
+      .eq('user_id', userData.user.id);
     if (error) {
       toast.error("Error fetching folders: " + error.message);
       return;
@@ -51,10 +65,15 @@ const Index = () => {
   };
 
   const handleAddNote = async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    const position = notes.length + 1;
+
     const newNote = {
       title: "Untitled",
       content: "",
       type: "doc",
+      user_id: userData.user.id,
+      position
     };
 
     const { data, error } = await supabase
@@ -74,11 +93,16 @@ const Index = () => {
   };
 
   const handleAddNoteToFolder = async (folderId: string) => {
+    const { data: userData } = await supabase.auth.getUser();
+    const position = notes.length + 1;
+
     const newNote = {
       title: "Untitled",
       content: "",
       type: "doc",
       folder_id: folderId,
+      user_id: userData.user.id,
+      position
     };
 
     const { data, error } = await supabase
@@ -98,9 +122,12 @@ const Index = () => {
   };
 
   const handleAddFolder = async (name: string) => {
+    const { data: userData } = await supabase.auth.getUser();
+    const position = folders.length + 1;
+
     const { data, error } = await supabase
       .from("folders")
-      .insert([{ name }])
+      .insert([{ name, user_id: userData.user.id, position }])
       .select()
       .single();
 
@@ -201,10 +228,15 @@ const Index = () => {
 
   const handleMoveNoteToFolder = async (noteId: string, folderId: string | null) => {
     try {
+      const { data: userData } = await supabase.auth.getUser();
       const { error } = await supabase
         .from('notes')
-        .update({ folder_id: folderId })
-        .eq('id', noteId);
+        .update({ 
+          folder_id: folderId,
+          user_id: userData.user.id 
+        })
+        .eq('id', noteId)
+        .eq('user_id', userData.user.id);
 
       if (error) throw error;
 

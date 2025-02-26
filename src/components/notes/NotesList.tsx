@@ -192,9 +192,11 @@ const NotesList = ({
     if (active.id === over.id) return;
 
     // Check if the target has a data-folder-id attribute
+    // We need to get both x and y coordinates from over
+    const rect = over.rect;
     const targetElement = document.elementFromPoint(
-      over.rect.left ?? 0,
-      over.rect.top ?? 0
+      rect.left,
+      rect.top
     );
     
     const folderElement = targetElement?.closest('[data-folder-id]');
