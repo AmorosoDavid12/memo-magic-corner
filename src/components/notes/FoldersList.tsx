@@ -75,7 +75,6 @@ export const FoldersList = ({
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editingFolderName, setEditingFolderName] = useState("");
   const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
-  const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -122,13 +121,8 @@ export const FoldersList = ({
     return notes.filter(note => note.folder_id === folderId);
   };
 
-  const handleDragStart = (event: DragEndEvent) => {
-    setActiveId(event.active.id as string);
-  };
-
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    setActiveId(null);
 
     if (over) {
       const draggedNote = notes.find(note => note.id === active.id);
@@ -150,7 +144,6 @@ export const FoldersList = ({
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
       <div className="space-y-2">
@@ -168,11 +161,16 @@ export const FoldersList = ({
 
         <div className="space-y-1">
           {folders.map((folder) => {
-            const folderNotes = getFolderNotes(folder.id);
+            const folderNotes = notes.filter(note => note.folder_id === folder.id);
             const isExpanded = expandedFolders.has(folder.id);
 
             return (
-              <div key={folder.id} className="relative" data-folder-id={folder.id}>
+              <div 
+                key={folder.id} 
+                className="relative" 
+                data-folder-id={folder.id}
+                data-type="folder"
+              >
                 <div
                   className={cn(
                     "flex items-center px-2 py-1 rounded-md hover:bg-accent group",
@@ -249,20 +247,16 @@ export const FoldersList = ({
                   </div>
                 </div>
 
-                {isExpanded && (
+                {isExpanded && folderNotes.length > 0 && (
                   <div className="pl-8 space-y-1 mt-1">
-                    <SortableContext
-                      items={folderNotes.map(note => note.id)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      {folderNotes.map((note) => (
-                        <SortableNote
-                          key={note.id}
-                          note={note}
-                          onClick={() => {/* Handle note selection if needed */}}
-                        />
-                      ))}
-                    </SortableContext>
+                    {folderNotes.map((note) => (
+                      <div
+                        key={note.id}
+                        className="text-sm px-2 py-1 rounded-md hover:bg-accent cursor-pointer"
+                      >
+                        {note.title}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -316,14 +310,6 @@ export const FoldersList = ({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-
-        <DragOverlay>
-          {activeId ? (
-            <div className="text-sm px-2 py-1 rounded-md bg-accent">
-              {notes.find(note => note.id === activeId)?.title}
-            </div>
-          ) : null}
-        </DragOverlay>
       </div>
     </DndContext>
   );

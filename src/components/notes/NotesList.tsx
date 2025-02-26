@@ -15,6 +15,7 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
+  DragOverlay,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -176,34 +177,35 @@ const NotesList = ({
   onMoveNoteToFolder,
 }: NotesListProps) => {
   const [selectedNotes, setSelectedNotes] = useState<Set<string>>(new Set());
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
 
+  const handleDragStart = (event: DragEndEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    setActiveId(null);
 
     if (!over) return;
 
     if (active.id === over.id) return;
 
-    // Check if the target has a data-folder-id attribute
-    // We need to get both x and y coordinates from over
-    const rect = over.rect;
-    const targetElement = document.elementFromPoint(
-      rect.left,
-      rect.top
-    );
-    
-    const folderElement = targetElement?.closest('[data-folder-id]');
-    if (folderElement) {
-      const folderId = folderElement.getAttribute('data-folder-id');
-      if (onMoveNoteToFolder && active.data.current?.type === 'note') {
-        onMoveNoteToFolder(active.id.toString(), folderId);
+    // Check if dropping on a folder
+    if (over.data.current?.type === 'folder') {
+      if (onMoveNoteToFolder) {
+        onMoveNoteToFolder(active.id.toString(), over.id.toString());
         return;
       }
     }
@@ -248,6 +250,7 @@ const NotesList = ({
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
       <SortableContext
@@ -271,6 +274,13 @@ const NotesList = ({
           ))}
         </SidebarMenu>
       </SortableContext>
+      <DragOverlay>
+        {activeId ? (
+          <div className="p-2 bg-background border rounded shadow-lg">
+            {notes.find(note => note.id === activeId)?.title}
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 };
