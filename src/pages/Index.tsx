@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Search, Plus, LogOut, Pencil, Filter } from "lucide-react";
+import { Search, Plus, LogOut, Pencil, Filter, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -35,6 +35,15 @@ import {
 } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import mammoth from "mammoth";
 
 interface Note {
   id: string;
@@ -57,6 +66,7 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [typePopoverOpen, setTypePopoverOpen] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -236,31 +246,63 @@ const Index = () => {
     }
   };
 
-  const handleContentUpload = async (newContent: string) => {
-    if (!selectedNote) return;
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
     
-    try {
-      const { error } = await supabase
-        .from('notes')
-        .update({ 
-          content: selectedNote.content + (selectedNote.content ? '\n\n' : '') + newContent 
-        })
-        .eq('id', selectedNote.id);
+    for (const file of files) {
+      try {
+        let content = '';
+        let fileName = file.name.split('.')[0] || 'Uploaded Note';
+        
+        if (file.name.endsWith('.docx')) {
+          // Handle .docx files using mammoth
+          const arrayBuffer = await file.arrayBuffer();
+          const result = await mammoth.extractRawText({ arrayBuffer });
+          content = result.value;
+        } else if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
+          // Handle .txt and .md files
+          const text = await file.text();
+          content = text;
+        } else {
+          toast.error(`Unsupported file type: ${file.name}`);
+          continue;
+        }
+        
+        // Create a new note with the file content
+        const maxPosition = notes.reduce((max, note) => Math.max(max, note.position), 0);
+        
+        const newNote = {
+          title: `${fileName}`,
+          content: content,
+          type: "Upload",
+          user_id: user?.id,
+          position: maxPosition + 1
+        };
 
-      if (error) throw error;
+        const { data, error } = await supabase
+          .from('notes')
+          .insert([newNote])
+          .select()
+          .single();
 
-      const updatedContent = selectedNote.content + (selectedNote.content ? '\n\n' : '') + newContent;
-      const updatedNotes = notes.map(note => 
-        note.id === selectedNote.id 
-          ? { ...note, content: updatedContent }
-          : note
-      );
-      setNotes(updatedNotes);
-      setSelectedNote({ ...selectedNote, content: updatedContent });
-      toast.success('Content uploaded successfully');
-    } catch (error: any) {
-      toast.error('Error uploading content: ' + error.message);
+        if (error) throw error;
+
+        // Add the new note to the notes array and select it
+        setNotes(prevNotes => [data, ...prevNotes]);
+        setSelectedNote(data);
+        toast.success(`File "${fileName}" uploaded successfully`);
+      } catch (error: any) {
+        toast.error(`Error uploading file ${file.name}: ${error.message}`);
+      }
     }
+    
+    // Close the dialog and reset the input
+    setUploadDialogOpen(false);
+    e.target.value = '';
+    
+    // Refresh notes to ensure they're displayed
+    await fetchNotes();
   };
 
   const handleLogout = async () => {
@@ -384,14 +426,47 @@ const Index = () => {
                   </Badge>
                 </div>
               )}
-              <Button 
-                className="w-full justify-start" 
-                variant="outline"
-                onClick={handleAddNote}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                New Note
-              </Button>
+              <div className="flex gap-2">
+                <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="outline"
+                      className="flex-shrink-0"
+                    >
+                      <Upload className="w-4 h-4 mr-1" />
+                      Upload
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Upload Files</DialogTitle>
+                      <DialogDescription>
+                        Upload .txt, .md, or .docx files to create new notes.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="file"
+                          multiple
+                          accept=".txt,.md,.docx"
+                          onChange={handleFileUpload}
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                
+                <Button 
+                  className="flex-1 justify-start" 
+                  variant="outline"
+                  onClick={handleAddNote}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Note
+                </Button>
+              </div>
             </div>
             <SidebarContent className="flex-1">
               <SidebarGroup>

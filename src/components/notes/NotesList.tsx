@@ -127,7 +127,7 @@ const SortableNoteItem = ({
               autoFocus
             />
           ) : (
-            <span>{note.title}</span>
+            <span className="truncate">{note.title}</span>
           )}
         </div>
         <div className="flex opacity-0 group-hover:opacity-100">
@@ -169,7 +169,11 @@ const NotesList = ({
   const [selectedNotes, setSelectedNotes] = useState<Set<string>>(new Set());
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -220,12 +224,25 @@ const NotesList = ({
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragEnd={handleDragEnd}
+      modifiers={[
+        // Restrict horizontal movement
+        {
+          name: 'restrictToParentElement',
+          options: {},
+          fn: ({ transform }) => {
+            return {
+              ...transform,
+              x: 0 // Lock x-axis movement
+            };
+          }
+        }
+      ]}
     >
       <SortableContext
         items={notes.map((note) => note.id)}
         strategy={verticalListSortingStrategy}
       >
-        <SidebarMenu>
+        <SidebarMenu className="overflow-hidden">
           {notes.length > 0 ? (
             notes.map((note) => (
               <SortableNoteItem
