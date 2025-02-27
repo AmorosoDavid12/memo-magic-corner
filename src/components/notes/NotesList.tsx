@@ -15,6 +15,7 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
+  restrictToVerticalAxis,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -224,17 +225,7 @@ const NotesList = ({
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragEnd={handleDragEnd}
-      modifiers={[
-        // Restrict horizontal movement
-        {
-          fn: ({ transform }) => {
-            return {
-              ...transform,
-              x: 0 // Lock x-axis movement
-            };
-          }
-        }
-      ]}
+      modifiers={[restrictToVerticalAxis]}
     >
       <SortableContext
         items={notes.map((note) => note.id)}
