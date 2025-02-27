@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Search, Plus, LogOut, Pencil } from "lucide-react";
+import { Search, Plus, LogOut, Pencil, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -20,6 +20,21 @@ import RichTextEditor from "@/components/rich-text-editor";
 import NotesList from "@/components/notes/NotesList";
 import NoteHeader from "@/components/notes/NoteHeader";
 import NoteMetadata from "@/components/notes/NoteMetadata";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Badge } from "@/components/ui/badge";
+import { X } from "lucide-react";
 
 interface Note {
   id: string;
@@ -39,6 +54,9 @@ const Index = () => {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingType, setEditingType] = useState(false);
   const [editingMainTitle, setEditingMainTitle] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string | null>(null);
+  const [typePopoverOpen, setTypePopoverOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -256,18 +274,116 @@ const Index = () => {
     }
   };
 
+  // Get all unique types from notes
+  const uniqueTypes = Array.from(new Set(notes.map(note => note.type || "Uncategorized"))).sort();
+  const hasSearchInTypes = uniqueTypes.length > 10;
+
+  // Filter notes based on search query and type filter
+  const filteredNotes = notes.filter(note => {
+    const matchesSearch = searchQuery === '' || 
+      note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (note.content && note.content.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    const matchesType = typeFilter === null || note.type === typeFilter;
+    
+    return matchesSearch && matchesType;
+  });
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <Sidebar>
           <div className="h-full flex flex-col">
             <div className="p-4 space-y-4">
-              <Input
-                type="text"
-                placeholder="Search"
-                className="w-full"
-                prefix={<Search className="w-4 h-4 text-muted-foreground" />}
-              />
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    type="text"
+                    placeholder="Search"
+                    className="w-full"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    prefix={<Search className="w-4 h-4 text-muted-foreground" />}
+                  />
+                  {searchQuery && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6" 
+                      onClick={() => setSearchQuery("")}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+                <Popover open={typePopoverOpen} onOpenChange={setTypePopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      className="relative"
+                    >
+                      <Filter className="h-4 w-4" />
+                      {typeFilter && (
+                        <span className="absolute -top-1 -right-1 h-2 w-2 bg-primary rounded-full" />
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0" align="end">
+                    <Command>
+                      {hasSearchInTypes && (
+                        <CommandInput placeholder="Search types..." />
+                      )}
+                      <CommandList>
+                        <CommandEmpty>No types found.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem 
+                            onSelect={() => {
+                              setTypeFilter(null);
+                              setTypePopoverOpen(false);
+                            }}
+                            className="flex items-center justify-between"
+                          >
+                            <span>All Types</span>
+                            {typeFilter === null && <span className="text-primary">✓</span>}
+                          </CommandItem>
+                          {uniqueTypes.map((type) => (
+                            <CommandItem 
+                              key={type} 
+                              onSelect={() => {
+                                setTypeFilter(type);
+                                setTypePopoverOpen(false);
+                              }}
+                              className="flex items-center justify-between"
+                            >
+                              <span>{type}</span>
+                              {typeFilter === type && <span className="text-primary">✓</span>}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              {typeFilter && (
+                <div className="flex items-center gap-2">
+                  <Badge 
+                    variant="secondary" 
+                    className="flex items-center gap-1"
+                  >
+                    {typeFilter}
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-4 w-4 p-0 hover:bg-transparent" 
+                      onClick={() => setTypeFilter(null)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </Badge>
+                </div>
+              )}
               <Button 
                 className="w-full justify-start" 
                 variant="outline"
@@ -282,7 +398,7 @@ const Index = () => {
                 <SidebarGroupLabel>Notes</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <NotesList
-                    notes={notes}
+                    notes={filteredNotes}
                     editingNoteId={editingNoteId}
                     onNoteSelect={handleNoteSelect}
                     onEditTitle={handleEditTitle}

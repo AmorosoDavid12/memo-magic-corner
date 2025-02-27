@@ -34,6 +34,7 @@ interface Note {
   type: string;
   created_at: string;
   updated_at: string;
+  position: number;
 }
 
 interface NotesListProps {
@@ -225,20 +226,26 @@ const NotesList = ({
         strategy={verticalListSortingStrategy}
       >
         <SidebarMenu>
-          {notes.map((note) => (
-            <SortableNoteItem
-              key={note.id}
-              note={note}
-              isEditing={editingNoteId === note.id}
-              isSelected={selectedNotes.has(note.id)}
-              onSelect={handleNoteSelect}
-              onEdit={onEditTitle}
-              onDelete={onDeleteNote}
-              onStartEdit={onStartEditing}
-              onStopEdit={onStopEditing}
-              onClick={() => onNoteSelect(note)}
-            />
-          ))}
+          {notes.length > 0 ? (
+            notes.map((note) => (
+              <SortableNoteItem
+                key={note.id}
+                note={note}
+                isEditing={editingNoteId === note.id}
+                isSelected={selectedNotes.has(note.id)}
+                onSelect={handleNoteSelect}
+                onEdit={onEditTitle}
+                onDelete={onDeleteNote}
+                onStartEdit={onStartEditing}
+                onStopEdit={onStopEditing}
+                onClick={() => onNoteSelect(note)}
+              />
+            ))
+          ) : (
+            <div className="px-4 py-3 text-sm text-muted-foreground">
+              No notes found.
+            </div>
+          )}
         </SidebarMenu>
       </SortableContext>
     </DndContext>
