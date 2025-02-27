@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { Search, Plus, LogOut, Pencil, Filter, Upload } from "lucide-react";
+import { Search, Plus, LogOut, Pencil, Filter, Upload, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -34,7 +33,6 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -53,7 +51,10 @@ interface Note {
   created_at: string;
   updated_at: string;
   position: number;
+  favorite?: boolean;
 }
+
+const MAX_FILTERS = 3;
 
 const Index = () => {
   const { user } = useAuth();
@@ -64,7 +65,7 @@ const Index = () => {
   const [editingType, setEditingType] = useState(false);
   const [editingMainTitle, setEditingMainTitle] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState<string | null>(null);
+  const [typeFilters, setTypeFilters] = useState<string[]>([]);
   const [typePopoverOpen, setTypePopoverOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
 
@@ -104,7 +105,8 @@ const Index = () => {
         content: "<p></p>",
         type: "Note",
         user_id: user?.id,
-        position: maxPosition + 1
+        position: maxPosition + 1,
+        favorite: false
       };
 
       const { data, error } = await supabase
@@ -173,6 +175,33 @@ const Index = () => {
       toast.success('Title updated successfully');
     } catch (error: any) {
       toast.error('Error updating title: ' + error.message);
+    }
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!selectedNote) return;
+    
+    try {
+      const newFavoriteState = !selectedNote.favorite;
+      
+      const { error } = await supabase
+        .from('notes')
+        .update({ favorite: newFavoriteState })
+        .eq('id', selectedNote.id);
+
+      if (error) throw error;
+
+      const updatedNotes = notes.map(note => 
+        note.id === selectedNote.id 
+          ? { ...note, favorite: newFavoriteState }
+          : note
+      );
+      setNotes(updatedNotes);
+      setSelectedNote({ ...selectedNote, favorite: newFavoriteState });
+      
+      toast.success(newFavoriteState ? 'Added to favorites' : 'Removed from favorites');
+    } catch (error: any) {
+      toast.error('Error updating favorite status: ' + error.message);
     }
   };
 
@@ -277,7 +306,8 @@ const Index = () => {
           content: content,
           type: "Upload",
           user_id: user?.id,
-          position: maxPosition + 1
+          position: maxPosition + 1,
+          favorite: false
         };
 
         const { data, error } = await supabase
@@ -343,17 +373,41 @@ const Index = () => {
     }
   };
 
+  const handleToggleTypeFilter = (type: string) => {
+    setTypeFilters(currentFilters => {
+      // If the filter is already selected, remove it
+      if (currentFilters.includes(type)) {
+        return currentFilters.filter(t => t !== type);
+      }
+      
+      // If adding would exceed the max, show an error and don't add
+      if (currentFilters.length >= MAX_FILTERS) {
+        toast.error(`Maximum ${MAX_FILTERS} filters allowed. Please unselect a filter before adding a new one.`, {
+          style: {
+            background: '#FFDEE2',
+            color: '#ea384c',
+            border: '1px solid #ea384c',
+          }
+        });
+        return currentFilters;
+      }
+      
+      // Otherwise, add the new filter
+      return [...currentFilters, type];
+    });
+  };
+
   // Get all unique types from notes
   const uniqueTypes = Array.from(new Set(notes.map(note => note.type || "Uncategorized"))).sort();
   const hasSearchInTypes = uniqueTypes.length > 10;
 
-  // Filter notes based on search query and type filter
+  // Filter notes based on search query and type filters
   const filteredNotes = notes.filter(note => {
     const matchesSearch = searchQuery === '' || 
       note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (note.content && note.content.toLowerCase().includes(searchQuery.toLowerCase()));
     
-    const matchesType = typeFilter === null || note.type === typeFilter;
+    const matchesType = typeFilters.length === 0 || typeFilters.includes(note.type);
     
     return matchesSearch && matchesType;
   });
@@ -364,7 +418,7 @@ const Index = () => {
         <Sidebar>
           <div className="h-full flex flex-col">
             <div className="p-4 space-y-4">
-              <div className="relative flex gap-2">
+              <div className="flex items-center gap-2">
                 <Input
                   type="text"
                   placeholder="Search"
@@ -377,7 +431,7 @@ const Index = () => {
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6" 
+                    className="absolute right-12 top-1/2 -translate-y-1/2 h-6 w-6" 
                     onClick={() => setSearchQuery("")}
                   >
                     <X className="h-3 w-3" />
@@ -391,8 +445,10 @@ const Index = () => {
                       className="relative flex-shrink-0"
                     >
                       <Filter className="h-4 w-4" />
-                      {typeFilter && (
-                        <span className="absolute -top-1 -right-1 h-2 w-2 bg-primary rounded-full" />
+                      {typeFilters.length > 0 && (
+                        <span className="absolute -top-1 -right-1 h-4 w-4 bg-primary rounded-full flex items-center justify-center text-[10px] text-primary-foreground">
+                          {typeFilters.length}
+                        </span>
                       )}
                     </Button>
                   </PopoverTrigger>
@@ -404,27 +460,21 @@ const Index = () => {
                       <CommandList>
                         <CommandEmpty>No types found.</CommandEmpty>
                         <CommandGroup>
-                          <CommandItem 
-                            onSelect={() => {
-                              setTypeFilter(null);
-                              setTypePopoverOpen(false);
-                            }}
-                            className="flex items-center justify-between"
-                          >
-                            <span>All Types</span>
-                            {typeFilter === null && <span className="text-primary">✓</span>}
-                          </CommandItem>
                           {uniqueTypes.map((type) => (
                             <CommandItem 
                               key={type} 
                               onSelect={() => {
-                                setTypeFilter(type);
-                                setTypePopoverOpen(false);
+                                handleToggleTypeFilter(type);
+                                if (typeFilters.length >= MAX_FILTERS && !typeFilters.includes(type)) {
+                                  // Keep the popover open if showing an error
+                                } else {
+                                  setTypePopoverOpen(false);
+                                }
                               }}
                               className="flex items-center justify-between"
                             >
                               <span>{type}</span>
-                              {typeFilter === type && <span className="text-primary">✓</span>}
+                              {typeFilters.includes(type) && <span className="text-primary">✓</span>}
                             </CommandItem>
                           ))}
                         </CommandGroup>
@@ -433,27 +483,40 @@ const Index = () => {
                   </PopoverContent>
                 </Popover>
               </div>
-              {typeFilter && (
-                <div className="flex items-center gap-2">
-                  <Badge 
-                    variant="secondary" 
-                    className="flex items-center gap-1"
-                  >
-                    {typeFilter}
+              {typeFilters.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {typeFilters.map(filter => (
+                    <Badge 
+                      key={filter}
+                      variant="secondary" 
+                      className="flex items-center gap-1"
+                    >
+                      {filter}
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-4 w-4 p-0 hover:bg-transparent" 
+                        onClick={() => setTypeFilters(current => current.filter(t => t !== filter))}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  ))}
+                  {typeFilters.length > 1 && (
                     <Button 
                       variant="ghost" 
-                      size="icon" 
-                      className="h-4 w-4 p-0 hover:bg-transparent" 
-                      onClick={() => setTypeFilter(null)}
+                      size="sm" 
+                      className="h-6 px-2 text-xs" 
+                      onClick={() => setTypeFilters([])}
                     >
-                      <X className="h-3 w-3" />
+                      Clear all
                     </Button>
-                  </Badge>
+                  )}
                 </div>
               )}
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center justify-between gap-2 px-0">
                 <Button 
-                  className="w-auto max-w-[60%]" 
+                  className="w-1/2" 
                   variant="outline"
                   onClick={handleAddNote}
                 >
@@ -465,9 +528,9 @@ const Index = () => {
                   <DialogTrigger asChild>
                     <Button 
                       variant="outline"
-                      className="flex-shrink-0"
+                      className="w-1/2"
                     >
-                      <Upload className="w-4 h-4 mr-1" />
+                      <Upload className="w-4 h-4 mr-2" />
                       Upload
                     </Button>
                   </DialogTrigger>
@@ -530,6 +593,8 @@ const Index = () => {
                 title={selectedNote.title} 
                 noteId={selectedNote.id}
                 onContentUpdate={handleContentUpload}
+                favorite={selectedNote.favorite}
+                onToggleFavorite={handleToggleFavorite}
               />
 
               <div className="p-8 max-w-4xl mx-auto">
