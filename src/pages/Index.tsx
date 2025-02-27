@@ -1,364 +1,372 @@
 
-import { Plus } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useSupabase } from "@/lib/supabase/supabase-provider";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
+import { Search, Plus, LogOut, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarHeader,
-  SidebarProvider,
+  SidebarGroupLabel,
+  SidebarProvider
 } from "@/components/ui/sidebar";
-import { toast } from "sonner";
-import { Editor } from "@/components/editor";
+import RichTextEditor from "@/components/rich-text-editor";
 import NotesList from "@/components/notes/NotesList";
-import { Note } from "@/types/notes";
-import { Folder } from "@/types/folders";
-import { FoldersList } from "@/components/notes/FoldersList";
+import NoteHeader from "@/components/notes/NoteHeader";
+import NoteMetadata from "@/components/notes/NoteMetadata";
+
+interface Note {
+  id: string;
+  title: string;
+  content: string;
+  type: string;
+  created_at: string;
+  updated_at: string;
+  position: number;
+}
 
 const Index = () => {
-  const { supabase } = useSupabase();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [notes, setNotes] = useState<Note[]>([]);
-  const [folders, setFolders] = useState<Folder[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [editingType, setEditingType] = useState(false);
+  const [editingMainTitle, setEditingMainTitle] = useState(false);
 
   useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    await Promise.all([fetchNotes(), fetchFolders()]);
-  };
+    if (user) {
+      fetchNotes();
+    }
+  }, [user]);
 
   const fetchNotes = async () => {
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError) {
-      toast.error("Error getting user: " + userError.message);
-      return;
-    }
+    try {
+      const { data, error } = await supabase
+        .from('notes')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('position', { ascending: true });
 
-    const { data, error } = await supabase
-      .from("notes")
-      .select("*")
-      .eq('user_id', userData.user.id);
-    if (error) {
-      toast.error("Error fetching notes: " + error.message);
-      return;
+      if (error) throw error;
+
+      setNotes(data || []);
+      if (data && data.length > 0 && !selectedNote) {
+        setSelectedNote(data[0]);
+      } else if (data && data.length === 0) {
+        setSelectedNote(null);
+      }
+    } catch (error: any) {
+      toast.error('Error loading notes: ' + error.message);
     }
-    setNotes(data);
   };
 
-  const fetchFolders = async () => {
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError) {
-      toast.error("Error getting user: " + userError.message);
-      return;
-    }
+  const handleAddNote = async () => {
+    try {
+      const maxPosition = notes.reduce((max, note) => Math.max(max, note.position), 0);
+      
+      const newNote = {
+        title: "New Note",
+        content: "<p></p>",
+        type: "Note",
+        user_id: user?.id,
+        position: maxPosition + 1
+      };
 
-    const { data, error } = await supabase
-      .from("folders")
-      .select("*")
-      .eq('user_id', userData.user.id)
-      .order('position', { ascending: true });
-    if (error) {
-      toast.error("Error fetching folders: " + error.message);
-      return;
+      const { data, error } = await supabase
+        .from('notes')
+        .insert([newNote])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setNotes(prevNotes => [data, ...prevNotes]);
+      setSelectedNote(data);
+      setEditingNoteId(data.id);
+      toast.success('Note created successfully');
+    } catch (error: any) {
+      toast.error('Error creating note: ' + error.message);
     }
-    setFolders(data || []);
   };
 
-  const handleAddNote = async (folderId: string | null = selectedFolderId) => {
-    const { data: userData } = await supabase.auth.getUser();
-    const position = notes.length + 1;
+  const handleReorderNotes = async (reorderedNotes: Note[]) => {
+    try {
+      // Update local state immediately for better UX
+      setNotes(reorderedNotes);
 
-    const newNote = {
-      title: "Untitled",
-      content: "",
-      type: "doc",
-      user_id: userData.user.id,
-      position,
-      folder_id: folderId
-    };
+      // Update notes one by one to avoid type issues with bulk update
+      for (const [index, note] of reorderedNotes.entries()) {
+        const { error } = await supabase
+          .from('notes')
+          .update({ position: index + 1 })
+          .eq('id', note.id);
 
-    const { data, error } = await supabase
-      .from("notes")
-      .insert([newNote])
-      .select()
-      .single();
-
-    if (error) {
-      toast.error("Error creating note: " + error.message);
-      return;
+        if (error) throw error;
+      }
+    } catch (error: any) {
+      toast.error('Error updating note positions: ' + error.message);
+      // Revert to original order on error by re-fetching
+      await fetchNotes();
     }
-
-    setNotes((prev) => [...prev, data]);
-    setSelectedNote(data);
-    setEditingNoteId(data.id);
   };
 
   const handleNoteSelect = (note: Note) => {
     setSelectedNote(note);
     setEditingNoteId(null);
+    setEditingType(false);
   };
 
-  const handleEditNoteTitle = async (noteId: string, newTitle: string) => {
-    const { error } = await supabase
-      .from("notes")
-      .update({ title: newTitle })
-      .eq("id", noteId);
+  const handleEditTitle = async (noteId: string, newTitle: string) => {
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .update({ title: newTitle })
+        .eq('id', noteId);
 
-    if (error) {
-      toast.error("Error updating note title: " + error.message);
-      return;
-    }
+      if (error) throw error;
 
-    setNotes((prev) =>
-      prev.map((note) =>
-        note.id === noteId ? { ...note, title: newTitle } : note
-      )
-    );
-
-    if (selectedNote?.id === noteId) {
-      setSelectedNote((prev) =>
-        prev ? { ...prev, title: newTitle } : null
+      const updatedNotes = notes.map(note => 
+        note.id === noteId 
+          ? { ...note, title: newTitle }
+          : note
       );
+      setNotes(updatedNotes);
+      
+      if (selectedNote?.id === noteId) {
+        setSelectedNote(prev => prev ? { ...prev, title: newTitle } : null);
+      }
+      toast.success('Title updated successfully');
+    } catch (error: any) {
+      toast.error('Error updating title: ' + error.message);
     }
   };
 
-  const handleDeleteNote = async (noteId: string) => {
-    const { error } = await supabase.from("notes").delete().eq("id", noteId);
+  const handleEditType = async (newType: string) => {
+    if (!selectedNote) return;
 
-    if (error) {
-      toast.error("Error deleting note: " + error.message);
-      return;
-    }
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .update({ type: newType })
+        .eq('id', selectedNote.id);
 
-    setNotes((prev) => prev.filter((note) => note.id !== noteId));
-    if (selectedNote?.id === noteId) {
-      setSelectedNote(null);
-    }
-  };
+      if (error) throw error;
 
-  const handleStartEditing = (noteId: string) => {
-    setEditingNoteId(noteId);
-  };
-
-  const handleStopEditing = () => {
-    setEditingNoteId(null);
-  };
-
-  const handleReorderNotes = async (reorderedNotes: Note[]) => {
-    setNotes(reorderedNotes);
-  };
-
-  const handleCreateFolder = async (name: string) => {
-    const { data: userData } = await supabase.auth.getUser();
-    const position = folders.length + 1;
-
-    const { data, error } = await supabase
-      .from("folders")
-      .insert([{
-        name,
-        user_id: userData.user.id,
-        position
-      }])
-      .select()
-      .single();
-
-    if (error) {
-      toast.error("Error creating folder: " + error.message);
-      return;
-    }
-
-    setFolders((prev) => [...prev, data]);
-  };
-
-  const handleDeleteFolder = async (folderId: string) => {
-    // First, update all notes in this folder to have no folder
-    const { error: updateError } = await supabase
-      .from("notes")
-      .update({ folder_id: null })
-      .eq("folder_id", folderId);
-
-    if (updateError) {
-      toast.error("Error updating notes: " + updateError.message);
-      return;
-    }
-
-    // Then delete the folder
-    const { error } = await supabase
-      .from("folders")
-      .delete()
-      .eq("id", folderId);
-
-    if (error) {
-      toast.error("Error deleting folder: " + error.message);
-      return;
-    }
-
-    setFolders((prev) => prev.filter((folder) => folder.id !== folderId));
-    if (selectedFolderId === folderId) {
-      setSelectedFolderId(null);
-    }
-
-    // Update notes state to reflect the changes
-    setNotes((prev) =>
-      prev.map((note) =>
-        note.folder_id === folderId ? { ...note, folder_id: null } : note
-      )
-    );
-  };
-
-  const handleRenameFolder = async (folderId: string, newName: string) => {
-    const { error } = await supabase
-      .from("folders")
-      .update({ name: newName })
-      .eq("id", folderId);
-
-    if (error) {
-      toast.error("Error renaming folder: " + error.message);
-      return;
-    }
-
-    setFolders((prev) =>
-      prev.map((folder) =>
-        folder.id === folderId ? { ...folder, name: newName } : folder
-      )
-    );
-  };
-
-  const handleMoveNote = async (noteId: string, folderId: string | null) => {
-    const { error } = await supabase
-      .from("notes")
-      .update({ folder_id: folderId })
-      .eq("id", noteId);
-
-    if (error) {
-      toast.error("Error moving note: " + error.message);
-      return;
-    }
-
-    setNotes((prev) =>
-      prev.map((note) =>
-        note.id === noteId ? { ...note, folder_id: folderId } : note
-      )
-    );
-
-    if (selectedNote?.id === noteId) {
-      setSelectedNote((prev) =>
-        prev ? { ...prev, folder_id: folderId } : null
+      const updatedNotes = notes.map(note => 
+        note.id === selectedNote.id 
+          ? { ...note, type: newType }
+          : note
       );
+      setNotes(updatedNotes);
+      setSelectedNote({ ...selectedNote, type: newType });
+      toast.success('Type updated successfully');
+    } catch (error: any) {
+      toast.error('Error updating type: ' + error.message);
     }
-
-    toast.success("Note moved successfully");
   };
 
-  const handleFolderSelect = (folderId: string | null) => {
-    setSelectedFolderId(folderId);
+  const handleDeleteNote = async (noteId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .delete()
+        .eq('id', noteId);
+
+      if (error) throw error;
+
+      const updatedNotes = notes.filter(note => note.id !== noteId);
+      setNotes(updatedNotes);
+      
+      if (selectedNote?.id === noteId) {
+        setSelectedNote(updatedNotes[0] || null);
+      }
+      toast.success('Note deleted successfully');
+    } catch (error: any) {
+      toast.error('Error deleting note: ' + error.message);
+    }
   };
 
-  const filteredNotes = notes.filter((note) => {
-    // First filter by search query
-    if (!note.title.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
+  const handleContentChange = async (newContent: string) => {
+    if (!selectedNote) return;
     
-    // Then filter by selected folder
-    if (selectedFolderId === null) {
-      return true; // Show all notes when no folder is selected
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .update({ content: newContent })
+        .eq('id', selectedNote.id);
+
+      if (error) throw error;
+
+      const updatedNotes = notes.map(note => 
+        note.id === selectedNote.id 
+          ? { ...note, content: newContent }
+          : note
+      );
+      setNotes(updatedNotes);
+      setSelectedNote({ ...selectedNote, content: newContent });
+    } catch (error: any) {
+      toast.error('Error saving note: ' + error.message);
     }
+  };
+
+  const handleContentUpload = async (newContent: string) => {
+    if (!selectedNote) return;
     
-    return note.folder_id === selectedFolderId;
-  });
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .update({ 
+          content: selectedNote.content + (selectedNote.content ? '\n\n' : '') + newContent 
+        })
+        .eq('id', selectedNote.id);
+
+      if (error) throw error;
+
+      const updatedContent = selectedNote.content + (selectedNote.content ? '\n\n' : '') + newContent;
+      const updatedNotes = notes.map(note => 
+        note.id === selectedNote.id 
+          ? { ...note, content: updatedContent }
+          : note
+      );
+      setNotes(updatedNotes);
+      setSelectedNote({ ...selectedNote, content: updatedContent });
+      toast.success('Content uploaded successfully');
+    } catch (error: any) {
+      toast.error('Error uploading content: ' + error.message);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      navigate("/auth");
+      toast.success("Logged out successfully");
+    } catch (error: any) {
+      toast.error("Error logging out: " + error.message);
+    }
+  };
 
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <Sidebar>
           <div className="h-full flex flex-col">
-            <SidebarHeader>
-              <div className="flex items-center justify-between px-2">
-                <h2 className="text-lg font-semibold">Notes</h2>
-              </div>
-            </SidebarHeader>
+            <div className="p-4 space-y-4">
+              <Input
+                type="text"
+                placeholder="Search"
+                className="w-full"
+                prefix={<Search className="w-4 h-4 text-muted-foreground" />}
+              />
+              <Button 
+                className="w-full justify-start" 
+                variant="outline"
+                onClick={handleAddNote}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                New Note
+              </Button>
+            </div>
             <SidebarContent className="flex-1">
               <SidebarGroup>
+                <SidebarGroupLabel>Notes</SidebarGroupLabel>
                 <SidebarGroupContent>
-                  <div className="flex items-center px-2">
-                    <Input
-                      placeholder="Search notes..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="h-8"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 ml-2"
-                      onClick={() => handleAddNote()}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  
-                  <FoldersList
-                    folders={folders}
+                  <NotesList
                     notes={notes}
-                    selectedFolderId={selectedFolderId}
-                    onFolderSelect={handleFolderSelect}
-                    onFolderCreate={handleCreateFolder}
-                    onFolderDelete={handleDeleteFolder}
-                    onFolderRename={handleRenameFolder}
-                    onMoveNote={handleMoveNote}
-                    onCreateNote={handleAddNote}
+                    editingNoteId={editingNoteId}
+                    onNoteSelect={handleNoteSelect}
+                    onEditTitle={handleEditTitle}
+                    onDeleteNote={handleDeleteNote}
+                    onStartEditing={setEditingNoteId}
+                    onStopEditing={() => setEditingNoteId(null)}
+                    onReorder={handleReorderNotes}
                   />
-                  
-                  <div className="mt-4">
-                    <h3 className="text-sm font-medium px-2 mb-2">
-                      {selectedFolderId 
-                        ? `Notes in ${folders.find(f => f.id === selectedFolderId)?.name || 'Folder'}` 
-                        : 'All Notes'}
-                    </h3>
-                    <NotesList
-                      notes={filteredNotes}
-                      editingNoteId={editingNoteId}
-                      onNoteSelect={handleNoteSelect}
-                      onEditTitle={handleEditNoteTitle}
-                      onDeleteNote={handleDeleteNote}
-                      onStartEditing={handleStartEditing}
-                      onStopEditing={handleStopEditing}
-                      onReorder={handleReorderNotes}
-                      onMoveNoteToFolder={handleMoveNote}
-                    />
-                  </div>
                 </SidebarGroupContent>
               </SidebarGroup>
             </SidebarContent>
+            <div className="p-4 mt-auto">
+              <Button 
+                className="w-full justify-start text-destructive" 
+                variant="ghost"
+                onClick={handleLogout}
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           </div>
         </Sidebar>
-        <main className="flex-1 overflow-hidden">
-          {selectedNote && (
-            <Editor
-              note={selectedNote}
-              onChange={async (content) => {
-                const { error } = await supabase
-                  .from("notes")
-                  .update({ content })
-                  .eq("id", selectedNote.id);
 
-                if (error) {
-                  toast.error("Error saving note: " + error.message);
-                }
-              }}
-            />
+        <div className="flex-1 overflow-auto">
+          {selectedNote ? (
+            <>
+              <NoteHeader 
+                title={selectedNote.title} 
+                noteId={selectedNote.id}
+                onContentUpdate={handleContentUpload}
+              />
+
+              <div className="p-8 max-w-4xl mx-auto">
+                <div className="flex items-center gap-2 mb-6">
+                  {editingMainTitle ? (
+                    <Input
+                      type="text"
+                      value={selectedNote.title}
+                      onChange={(e) => handleEditTitle(selectedNote.id, e.target.value)}
+                      className="text-3xl font-bold h-auto py-1"
+                      onBlur={() => setEditingMainTitle(false)}
+                      autoFocus
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <h1 className="text-3xl font-bold">{selectedNote.title}</h1>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => setEditingMainTitle(true)}
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                
+                <NoteMetadata
+                  created_at={selectedNote.created_at}
+                  updated_at={selectedNote.updated_at}
+                  type={selectedNote.type}
+                  editingType={editingType}
+                  onEditType={handleEditType}
+                  onStartEditingType={() => setEditingType(true)}
+                  onStopEditingType={() => setEditingType(false)}
+                />
+
+                <Separator className="my-8" />
+                
+                <RichTextEditor 
+                  key={selectedNote.id}
+                  content={selectedNote.content || ''} 
+                  onChange={handleContentChange}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="h-full flex items-center justify-center text-muted-foreground">
+              <p>No note selected. Create a new note or select an existing one.</p>
+            </div>
           )}
-        </main>
+        </div>
       </div>
     </SidebarProvider>
   );

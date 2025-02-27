@@ -15,7 +15,6 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
-  DragOverlay,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -27,7 +26,15 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { Note } from "@/types/notes";
+
+interface Note {
+  id: string;
+  title: string;
+  content: string;
+  type: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface NotesListProps {
   notes: Note[];
@@ -38,7 +45,6 @@ interface NotesListProps {
   onStartEditing: (noteId: string) => void;
   onStopEditing: () => void;
   onReorder: (notes: Note[]) => void;
-  onMoveNoteToFolder?: (noteId: string, folderId: string | null) => void;
 }
 
 interface SortableNoteItemProps {
@@ -71,19 +77,12 @@ const SortableNoteItem = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ 
-    id: note.id,
-    data: {
-      type: 'note',
-      note
-    }
-  });
+  } = useSortable({ id: note.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 1 : 0,
-    opacity: isDragging ? 0.5 : 1,
   };
 
   return (
@@ -165,47 +164,25 @@ const NotesList = ({
   onStartEditing,
   onStopEditing,
   onReorder,
-  onMoveNoteToFolder,
 }: NotesListProps) => {
   const [selectedNotes, setSelectedNotes] = useState<Set<string>>(new Set());
-  const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5,
-      },
-    }),
+    useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
 
-  const handleDragStart = (event: DragEndEvent) => {
-    setActiveId(event.active.id as string);
-  };
-
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    setActiveId(null);
 
-    if (!over) return;
-
-    // Check if dropping on a folder
-    if (over.data.current?.type === 'folder') {
-      if (onMoveNoteToFolder) {
-        onMoveNoteToFolder(active.id.toString(), over.id.toString());
-        return;
-      }
+    if (over && active.id !== over.id) {
+      const oldIndex = notes.findIndex((note) => note.id === active.id);
+      const newIndex = notes.findIndex((note) => note.id === over.id);
+      const newNotes = arrayMove(notes, oldIndex, newIndex);
+      onReorder(newNotes);
     }
-
-    // If not dropping on a folder, handle regular reordering
-    if (active.id === over.id) return;
-
-    const oldIndex = notes.findIndex((note) => note.id === active.id);
-    const newIndex = notes.findIndex((note) => note.id === over.id);
-    const newNotes = arrayMove(notes, oldIndex, newIndex);
-    onReorder(newNotes);
   };
 
   const handleNoteSelect = (noteId: string, event: React.MouseEvent) => {
@@ -241,7 +218,6 @@ const NotesList = ({
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
       <SortableContext
@@ -265,13 +241,6 @@ const NotesList = ({
           ))}
         </SidebarMenu>
       </SortableContext>
-      <DragOverlay>
-        {activeId ? (
-          <div className="p-2 bg-background border rounded shadow-lg">
-            {notes.find(note => note.id === activeId)?.title}
-          </div>
-        ) : null}
-      </DragOverlay>
     </DndContext>
   );
 };
