@@ -38,6 +38,7 @@ interface NotesListProps {
   onStartEditing: (noteId: string) => void;
   onStopEditing: () => void;
   onReorder: (notes: Note[]) => void;
+  onMoveNoteToFolder?: (noteId: string, folderId: string | null) => void;
 }
 
 interface SortableNoteItemProps {
@@ -70,7 +71,13 @@ const SortableNoteItem = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: note.id });
+  } = useSortable({ 
+    id: note.id,
+    data: {
+      type: 'note',
+      note
+    }
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -158,6 +165,7 @@ const NotesList = ({
   onStartEditing,
   onStopEditing,
   onReorder,
+  onMoveNoteToFolder,
 }: NotesListProps) => {
   const [selectedNotes, setSelectedNotes] = useState<Set<string>>(new Set());
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -183,6 +191,15 @@ const NotesList = ({
 
     if (!over) return;
 
+    // Check if dropping on a folder
+    if (over.data.current?.type === 'folder') {
+      if (onMoveNoteToFolder) {
+        onMoveNoteToFolder(active.id.toString(), over.id.toString());
+        return;
+      }
+    }
+
+    // If not dropping on a folder, handle regular reordering
     if (active.id === over.id) return;
 
     const oldIndex = notes.findIndex((note) => note.id === active.id);

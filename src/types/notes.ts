@@ -8,4 +8,5 @@ export interface Note {
   updated_at: string;
   position: number;
   user_id: string;
+  folder_id?: string | null;
 }
