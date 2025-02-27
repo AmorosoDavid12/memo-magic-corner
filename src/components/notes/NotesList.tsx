@@ -227,7 +227,6 @@ const NotesList = ({
       modifiers={[
         // Restrict horizontal movement
         {
-          name: 'restrictToParentElement',
           options: {},
           fn: ({ transform }) => {
             return {
