@@ -227,7 +227,6 @@ const NotesList = ({
       modifiers={[
         // Restrict horizontal movement
         {
-          options: {},
           fn: ({ transform }) => {
             return {
               ...transform,

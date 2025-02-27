@@ -246,6 +246,65 @@ const Index = () => {
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    
+    for (const file of files) {
+      try {
+        let content = '';
+        let fileName = file.name.split('.')[0] || 'Uploaded Note';
+        
+        if (file.name.endsWith('.docx')) {
+          // Handle .docx files using mammoth
+          const arrayBuffer = await file.arrayBuffer();
+          const result = await mammoth.extractRawText({ arrayBuffer });
+          content = result.value;
+        } else if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
+          // Handle .txt and .md files
+          const text = await file.text();
+          content = text;
+        } else {
+          toast.error(`Unsupported file type: ${file.name}`);
+          continue;
+        }
+        
+        // Create a new note with the file content
+        const maxPosition = notes.reduce((max, note) => Math.max(max, note.position), 0);
+        
+        const newNote = {
+          title: `${fileName}`,
+          content: content,
+          type: "Upload",
+          user_id: user?.id,
+          position: maxPosition + 1
+        };
+
+        const { data, error } = await supabase
+          .from('notes')
+          .insert([newNote])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Add the new note to the notes array and select it
+        setNotes(prevNotes => [data, ...prevNotes]);
+        setSelectedNote(data);
+        toast.success(`File "${fileName}" uploaded successfully`);
+      } catch (error: any) {
+        toast.error(`Error uploading file ${file.name}: ${error.message}`);
+      }
+    }
+    
+    // Close the dialog and reset the input
+    setUploadDialogOpen(false);
+    e.target.value = '';
+    
+    // Refresh notes to ensure they're displayed
+    await fetchNotes();
+  };
+
   const handleContentUpload = async (newContent: string) => {
     if (!selectedNote) return;
     
