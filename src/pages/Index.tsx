@@ -364,33 +364,31 @@ const Index = () => {
         <Sidebar>
           <div className="h-full flex flex-col">
             <div className="p-4 space-y-4">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Input
-                    type="text"
-                    placeholder="Search"
-                    className="w-full"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    prefix={<Search className="w-4 h-4 text-muted-foreground" />}
-                  />
-                  {searchQuery && (
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6" 
-                      onClick={() => setSearchQuery("")}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
+              <div className="relative flex gap-2">
+                <Input
+                  type="text"
+                  placeholder="Search"
+                  className="w-full"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  prefix={<Search className="w-4 h-4 text-muted-foreground" />}
+                />
+                {searchQuery && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6" 
+                    onClick={() => setSearchQuery("")}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
                 <Popover open={typePopoverOpen} onOpenChange={setTypePopoverOpen}>
                   <PopoverTrigger asChild>
                     <Button 
                       variant="outline" 
                       size="icon" 
-                      className="relative"
+                      className="relative flex-shrink-0"
                     >
                       <Filter className="h-4 w-4" />
                       {typeFilter && (
@@ -453,7 +451,16 @@ const Index = () => {
                   </Badge>
                 </div>
               )}
-              <div className="flex gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <Button 
+                  className="w-auto max-w-[60%]" 
+                  variant="outline"
+                  onClick={handleAddNote}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Note
+                </Button>
+                
                 <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
                   <DialogTrigger asChild>
                     <Button 
@@ -484,15 +491,6 @@ const Index = () => {
                     </div>
                   </DialogContent>
                 </Dialog>
-                
-                <Button 
-                  className="flex-1 justify-start" 
-                  variant="outline"
-                  onClick={handleAddNote}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  New Note
-                </Button>
               </div>
             </div>
             <SidebarContent className="flex-1">
